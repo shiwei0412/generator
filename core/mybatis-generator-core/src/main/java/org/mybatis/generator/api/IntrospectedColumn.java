@@ -28,6 +28,7 @@ import org.mybatis.generator.internal.util.StringUtility;
  * @author Jeff Butler
  */
 public class IntrospectedColumn {
+	
     protected String actualColumnName;
 
     protected int jdbcType;
@@ -146,6 +147,21 @@ public class IntrospectedColumn {
         sb.append(scale);
         sb.append(", Identity: "); //$NON-NLS-1$
         sb.append(identity);
+        //TODO added by shiwei03
+        sb.append(", tableAlias: ");
+        sb.append(tableAlias);
+        sb.append(", actualTypeName: ");
+        sb.append(actualTypeName);
+        sb.append(", scale: ");
+        sb.append(scale);
+        sb.append(", remarks: ");
+        sb.append(remarks);
+        sb.append(", defaultValue: ");
+        sb.append(defaultValue);
+        sb.append(", isAutoIncrement: ");
+        sb.append(isAutoIncrement);
+        sb.append(", isGeneratedColumn: ");
+        sb.append(isGeneratedColumn);
 
         return sb.toString();
     }

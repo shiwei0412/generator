@@ -427,6 +427,61 @@ public class Context extends PropertyHolder {
             closeConnection(connection);
         }
     }
+    
+    
+    public void introspectTablesForDqs(ProgressCallback callback,
+            List<String> warnings, Set<String> fullyQualifiedTableNames)
+            throws SQLException, InterruptedException {
+
+        introspectedTables = new ArrayList<>();
+        //JAVA类型解析器，用于将数据库中的字段类型转换成java类型，如果默认的不满足条件的话，可以自定义java类型解析器，
+        //例如将double转换成BigDecimal，参考：https://blog.csdn.net/sinat_31396769/article/details/100072183
+        JavaTypeResolver javaTypeResolver = ObjectFactory.createJavaTypeResolver(this, warnings);
+
+        Connection connection = null;
+
+        try {
+            callback.startTask(getString("Progress.0")); //$NON-NLS-1$
+            connection = getConnection();
+
+            DatabaseIntrospector databaseIntrospector = new DatabaseIntrospector(
+                    this, connection.getMetaData(), javaTypeResolver, warnings);
+
+            for (TableConfiguration tc : tableConfigurations) {
+                String tableName = composeFullyQualifiedTableName(tc.getCatalog(), tc
+                                .getSchema(), tc.getTableName(), '.');
+
+                if (fullyQualifiedTableNames != null
+                        && !fullyQualifiedTableNames.isEmpty()
+                        && !fullyQualifiedTableNames.contains(tableName)) {
+                    continue;
+                }
+
+                if (!tc.areAnyStatementsEnabled()) {
+                    warnings.add(getString("Warning.0", tableName)); //$NON-NLS-1$
+                    continue;
+                }
+
+                callback.startTask(getString("Progress.1", tableName)); //$NON-NLS-1$
+                
+                //TODO shiwei 真正解析数据库表的地方
+                List<IntrospectedTable> tables = databaseIntrospector
+                        .introspectTables(tc);
+
+                if (tables != null) {
+                    introspectedTables.addAll(tables);
+                }
+
+                callback.checkCancel();
+            }
+        } finally {
+            closeConnection(connection);
+        }
+    }
+    
+    
+    
+    
 
     public int getGenerationSteps() {
         int steps = 0;

@@ -23,6 +23,7 @@ import static org.mybatis.generator.internal.util.StringUtility.stringHasValue;
 import static org.mybatis.generator.internal.util.messages.Messages.getString;
 
 import java.sql.DatabaseMetaData;
+import java.sql.JDBCType;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -52,6 +53,8 @@ import org.mybatis.generator.internal.ObjectFactory;
 import org.mybatis.generator.internal.util.JavaBeansUtil;
 import org.mybatis.generator.logging.Log;
 import org.mybatis.generator.logging.LogFactory;
+
+import com.alibaba.fastjson.JSON;
 
 public class DatabaseIntrospector {
 
@@ -605,7 +608,7 @@ public class DatabaseIntrospector {
                 columns = new ArrayList<>();
                 answer.put(atn, columns);
             }
-
+            System.out.println("shiwei03 introspectedColumn: " + introspectedColumn.toString());
             columns.add(introspectedColumn);
 
             if (logger.isDebugEnabled()) {
@@ -616,6 +619,175 @@ public class DatabaseIntrospector {
                         atn.toString()));
             }
         }
+
+        closeResultSet(rs);
+
+        if (answer.size() > 1
+                && !stringContainsSQLWildcard(localSchema)
+                && !stringContainsSQLWildcard(localTableName)) {
+            // issue a warning if there is more than one table and
+            // no wildcards were used
+            ActualTableName inputAtn = new ActualTableName(tc.getCatalog(), tc
+                    .getSchema(), tc.getTableName());
+
+            StringBuilder sb = new StringBuilder();
+            boolean comma = false;
+            for (ActualTableName atn : answer.keySet()) {
+                if (comma) {
+                    sb.append(',');
+                } else {
+                    comma = true;
+                }
+                sb.append(atn.toString());
+            }
+
+            warnings.add(getString("Warning.25", //$NON-NLS-1$
+                    inputAtn.toString(), sb.toString()));
+        }
+
+        return answer;
+    }
+    
+    
+  //TODO shiwei mock 解析列的数据
+    private Map<ActualTableName, List<IntrospectedColumn>> getColumnsMock(
+            TableConfiguration tc) throws SQLException {
+        String localCatalog;
+        String localSchema;
+        String localTableName;
+
+        /**
+         * 注意：大小写敏感问题。正常情况下，MBG会自动的去识别数据库标识符的大小写敏感度，在一般情况下，MBG会
+            根据设置的schema，catalog或tablename去查询数据表，按照下面的流程：
+            1，如果schema，catalog或tablename中有空格，那么设置的是什么格式，就精确的使用指定的大小写格式去查询；
+            2，否则，如果数据库的标识符使用大写的，那么MBG自动把表名变成大写再查找；
+            3，否则，如果数据库的标识符使用小写的，那么MBG自动把表名变成小写再查找；
+            4，否则，使用指定的大小写格式查询；
+        另外的，如果在创建表的时候，使用的""把数据库对象规定大小写，就算数据库标识符是使用的大写，在这种情况下也会使用给定的大小写来创建表名；
+        这个时候，请设置delimitIdentifiers="true"即可保留大小写格式；
+         */
+        boolean delimitIdentifiers = tc.isDelimitIdentifiers()
+                || stringContainsSpace(tc.getCatalog())
+                || stringContainsSpace(tc.getSchema())
+                || stringContainsSpace(tc.getTableName());
+
+        if (delimitIdentifiers) {
+            localCatalog = tc.getCatalog();
+            localSchema = tc.getSchema();
+            localTableName = tc.getTableName();
+        } else if (databaseMetaData.storesLowerCaseIdentifiers()) {
+            localCatalog = tc.getCatalog() == null ? null : tc.getCatalog()
+                    .toLowerCase();
+            localSchema = tc.getSchema() == null ? null : tc.getSchema()
+                    .toLowerCase();
+            localTableName = tc.getTableName() == null ? null : tc
+                    .getTableName().toLowerCase();
+        } else if (databaseMetaData.storesUpperCaseIdentifiers()) {
+            localCatalog = tc.getCatalog() == null ? null : tc.getCatalog()
+                    .toUpperCase();
+            localSchema = tc.getSchema() == null ? null : tc.getSchema()
+                    .toUpperCase();
+            localTableName = tc.getTableName() == null ? null : tc
+                    .getTableName().toUpperCase();
+        } else {
+            localCatalog = tc.getCatalog();
+            localSchema = tc.getSchema();
+            localTableName = tc.getTableName();
+        }
+
+        // Wildcard 通配符，escaping 转义
+        if (tc.isWildcardEscapingEnabled()) {
+            String escapeString = databaseMetaData.getSearchStringEscape();
+
+            StringBuilder sb = new StringBuilder();
+            StringTokenizer st;
+            if (localSchema != null) {
+                st = new StringTokenizer(localSchema, "_%", true); //$NON-NLS-1$
+                while (st.hasMoreTokens()) {
+                    String token = st.nextToken();
+                    if (token.equals("_") //$NON-NLS-1$
+                            || token.equals("%")) { //$NON-NLS-1$
+                        sb.append(escapeString);
+                    }
+                    sb.append(token);
+                }
+                localSchema = sb.toString();
+            }
+
+            sb.setLength(0);
+            st = new StringTokenizer(localTableName, "_%", true); //$NON-NLS-1$
+            while (st.hasMoreTokens()) {
+                String token = st.nextToken();
+                if (token.equals("_") //$NON-NLS-1$
+                        || token.equals("%")) { //$NON-NLS-1$
+                    sb.append(escapeString);
+                }
+                sb.append(token);
+            }
+            localTableName = sb.toString();
+        }
+
+        Map<ActualTableName, List<IntrospectedColumn>> answer = new HashMap<>();
+
+        if (logger.isDebugEnabled()) {
+            String fullTableName = composeFullyQualifiedTableName(localCatalog, localSchema,
+                            localTableName, '.');
+            logger.debug(getString("Tracing.1", fullTableName)); //$NON-NLS-1$
+        }
+
+        ResultSet rs = databaseMetaData.getColumns(localCatalog, localSchema,
+                localTableName, "%"); //$NON-NLS-1$
+
+        boolean supportsIsAutoIncrement = false;
+        boolean supportsIsGeneratedColumn = false;
+        ResultSetMetaData rsmd = rs.getMetaData();
+        int colCount = rsmd.getColumnCount();
+        for (int i = 1; i <= colCount; i++) {
+            if ("IS_AUTOINCREMENT".equals(rsmd.getColumnName(i))) { //$NON-NLS-1$
+                supportsIsAutoIncrement = true;
+            }
+            if ("IS_GENERATEDCOLUMN".equals(rsmd.getColumnName(i))) { //$NON-NLS-1$
+                supportsIsGeneratedColumn = true;
+            }
+        }
+
+        for(int i=0;i<10;i++) {
+        	IntrospectedColumn introspectedColumn = ObjectFactory.createIntrospectedColumn(context);
+        	introspectedColumn.setTableAlias(tc.getAlias());
+        	introspectedColumn.setJdbcType(JDBCType.BIGINT.getVendorTypeNumber()); //$NON-NLS-1$
+        	introspectedColumn.setActualTypeName(rs.getString("TYPE_NAME")); //$NON-NLS-1$
+        	introspectedColumn.setLength(100); //$NON-NLS-1$
+        	introspectedColumn.setActualColumnName(rs.getString("COLUMN_NAME")); //$NON-NLS-1$
+        	introspectedColumn
+        	.setNullable(rs.getInt("NULLABLE") == DatabaseMetaData.columnNullable); //$NON-NLS-1$
+        	introspectedColumn.setScale(rs.getInt("DECIMAL_DIGITS")); //$NON-NLS-1$
+        	introspectedColumn.setRemarks(rs.getString("REMARKS")); //$NON-NLS-1$
+        	introspectedColumn.setDefaultValue(rs.getString("COLUMN_DEF")); //$NON-NLS-1$
+        	
+        	if (supportsIsAutoIncrement) {
+        		introspectedColumn.setAutoIncrement(
+        				"YES".equals(rs.getString("IS_AUTOINCREMENT"))); //$NON-NLS-1$ //$NON-NLS-2$
+        	}
+        	
+        	if (supportsIsGeneratedColumn) {
+        		introspectedColumn.setGeneratedColumn(
+        				"YES".equals(rs.getString("IS_GENERATEDCOLUMN"))); //$NON-NLS-1$ //$NON-NLS-2$
+        	}
+        	
+        	ActualTableName atn = new ActualTableName(
+        			rs.getString("TABLE_CAT"), //$NON-NLS-1$
+        			rs.getString("TABLE_SCHEM"), //$NON-NLS-1$
+        			rs.getString("TABLE_NAME")); //$NON-NLS-1$
+        	
+        	List<IntrospectedColumn> columns = answer.get(atn);
+        	if (columns == null) {
+        		columns = new ArrayList<>();
+        		answer.put(atn, columns);
+        	}
+        	columns.add(introspectedColumn);
+        }
+        
+
 
         closeResultSet(rs);
 
