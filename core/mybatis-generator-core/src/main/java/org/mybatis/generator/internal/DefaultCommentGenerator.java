@@ -281,8 +281,10 @@ public class DefaultCommentGenerator implements CommentGenerator {
         sb.append('.');
         sb.append(introspectedColumn.getActualColumnName());
         field.addJavaDocLine(sb.toString());
-
+        
         addJavadocTag(field, false);
+        
+        //TODO shiwei 添加queryIndex queryDim注解可以在这里来实现，同时注意需要添加import相关的包
 
         field.addJavaDocLine(" */"); //$NON-NLS-1$
     }
@@ -307,6 +309,7 @@ public class DefaultCommentGenerator implements CommentGenerator {
         field.addJavaDocLine(" */"); //$NON-NLS-1$
     }
 
+    //TODO shiwei03 方法级别的注释都是在这里的
     @Override
     public void addGeneralMethodComment(Method method, IntrospectedTable introspectedTable) {
         if (suppressAllComments) {
@@ -394,6 +397,7 @@ public class DefaultCommentGenerator implements CommentGenerator {
         method.addJavaDocLine(" */"); //$NON-NLS-1$
     }
 
+    //TODO shiwei 添加方法注解
     @Override
     public void addGeneralMethodAnnotation(Method method, IntrospectedTable introspectedTable,
             Set<FullyQualifiedJavaType> imports) {
@@ -412,6 +416,7 @@ public class DefaultCommentGenerator implements CommentGenerator {
         method.addAnnotation(getGeneratedAnnotation(comment));
     }
 
+    //TODO shiwei 添加Field注解
     @Override
     public void addFieldAnnotation(Field field, IntrospectedTable introspectedTable,
             Set<FullyQualifiedJavaType> imports) {

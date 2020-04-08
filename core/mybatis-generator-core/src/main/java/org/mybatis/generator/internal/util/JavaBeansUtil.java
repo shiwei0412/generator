@@ -188,6 +188,7 @@ public class JavaBeansUtil {
             Context context,
             IntrospectedTable introspectedTable) {
         Method method = getBasicJavaBeansGetter(introspectedColumn);
+        //添加getter()方法注释
         addGeneratedGetterJavaDoc(method, introspectedColumn, context, introspectedTable);
         return method;
     }
@@ -274,6 +275,7 @@ public class JavaBeansUtil {
             Context context,
             IntrospectedTable introspectedTable) {
         Method method = getBasicJavaBeansSetter(introspectedColumn);
+        //添加setter方法注释
         addGeneratedSetterJavaDoc(method, introspectedColumn, context, introspectedTable);
         return method;
     }

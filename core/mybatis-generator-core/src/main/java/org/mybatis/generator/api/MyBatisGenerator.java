@@ -240,6 +240,7 @@ public class MyBatisGenerator {
         }
 
         // now run the introspections...
+        // 开始连接数据库，解析表
         int totalSteps = 0;
         for (Context context : contextsToRun) {
             totalSteps += context.getIntrospectionSteps();
@@ -247,11 +248,13 @@ public class MyBatisGenerator {
         callback.introspectionStarted(totalSteps);
 
         for (Context context : contextsToRun) {
+        	//0、 连接数据库，解析表字段
             context.introspectTables(callback, warnings,
                     fullyQualifiedTableNames);
         }
 
         // now run the generates
+        // 开始生成代码
         totalSteps = 0;
         for (Context context : contextsToRun) {
             totalSteps += context.getGenerationSteps();
@@ -259,6 +262,7 @@ public class MyBatisGenerator {
         callback.generationStarted(totalSteps);
 
         for (Context context : contextsToRun) {
+        	//在该方法中，对generatedJavaFiles、generatedXmlFiles、generatedKotlinFiles等赋值
             context.generateFiles(callback, generatedJavaFiles,
                     generatedXmlFiles, generatedKotlinFiles, warnings);
         }
@@ -268,13 +272,20 @@ public class MyBatisGenerator {
             callback.saveStarted(generatedXmlFiles.size()
                     + generatedJavaFiles.size());
 
+            //真正生成文件内容的地方是在这里，迭代上面赋值的generatedJavaFiles、generatedXmlFiles、generatedKotlinFiles，
+            //并调用GeneratedFile.java的getFormattedContent()方法，它有GeneratedXmlFile、GeneratedJavaFile、GeneratedKotlinFile三个实现。
             for (GeneratedXmlFile gxf : generatedXmlFiles) {
                 projects.add(gxf.getTargetProject());
+                //GeneratedXmlFile调用的是XmlFormatter的getFormattedContent()方法，XmlFormatter只有一个实现DefaultXmlFormatter，最终调用的是DocumentRenderer的render()方法进行渲染
                 writeGeneratedXmlFile(gxf, callback);
             }
 
             for (GeneratedJavaFile gjf : generatedJavaFiles) {
                 projects.add(gjf.getTargetProject());
+                //GeneratedJavaFile调用的是javaFormatter的getFormattedContent()方法，JavaFormatter只有一个实现DefaultJavaFormatter，
+                //CompilationUnit调用的是CompilationUnit的accept()方法，CompilationUnit有三个实现：Interface、TopLevelClass、TopLevelEnumeration，
+                //BaseRecordGenerator、PrimaryKeyGenerator对应的是TopLevelClass.java，它调用的是TopLevelClassRenderer的render()方法进行渲染。
+                //JavaMapperGenerator对应的是Interface.java，它调用的是TopLevelInterfaceRenderer.class进行渲染
                 writeGeneratedJavaFile(gjf, callback);
             }
 

@@ -38,6 +38,7 @@ public class DefaultJavaFormatter implements JavaFormatter, CompilationUnitVisit
 
     @Override
     public String getFormattedContent(CompilationUnit compilationUnit) {
+    	//CompilationUnit有三个实现，分别是TopLevelClass、TopLevelEnumeration、Interface，分别对应下面的是三个visit()方法
         return compilationUnit.accept(this);
     }
 

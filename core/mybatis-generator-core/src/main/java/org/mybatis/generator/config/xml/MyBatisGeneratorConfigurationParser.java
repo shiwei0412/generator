@@ -73,6 +73,7 @@ public class MyBatisGeneratorConfigurationParser {
         configurationProperties = new Properties();
     }
 
+    //TODO shiwei 解析xml文件的地方
     public Configuration parseConfiguration(Element rootNode)
             throws XMLParserException {
 

@@ -69,6 +69,7 @@ public class JavaMapperGenerator extends AbstractJavaClientGenerator {
         interfaze.setVisibility(JavaVisibility.PUBLIC);
         commentGenerator.addJavaFileComment(interfaze);
 
+        //先看table的rootInterface配置，如果table的rootInterface为空，再看javaclient的rootInterface配置。
         String rootInterface = introspectedTable
                 .getTableConfigurationProperty(PropertyRegistry.ANY_ROOT_INTERFACE);
         if (!stringHasValue(rootInterface)) {
@@ -217,6 +218,7 @@ public class JavaMapperGenerator extends AbstractJavaClientGenerator {
         methodGenerator.setIntrospectedTable(introspectedTable);
         methodGenerator.setProgressCallback(progressCallback);
         methodGenerator.setWarnings(warnings);
+        //将当前methodGenerator添加到interface中去，AbstractJavaMapperMethodGenerator是所有methodGenerator的父类
         methodGenerator.addInterfaceElements(interfaze);
     }
 

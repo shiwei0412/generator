@@ -63,11 +63,12 @@ public class IntrospectedTableMyBatis3Impl extends IntrospectedTable {
     @Override
     public void calculateGenerators(List<String> warnings,
             ProgressCallback progressCallback) {
+    	//添加java模型生成器，对应javaModelGenerator配置，包括ExampleGenerator、PrimaryKeyGenerator、BaseRecordGenerator、RecordWithBLOBsGenerator
         calculateJavaModelGenerators(warnings, progressCallback);
-        
+        //添加java client生成器，对应javaClientGenerator配置
         AbstractJavaClientGenerator javaClientGenerator =
                 calculateClientGenerators(warnings, progressCallback);
-            
+        //添加mapper生成器，对应sqlMapGenerator配置
         calculateXmlMapperGenerator(javaClientGenerator, warnings, progressCallback);
     }
 
@@ -175,10 +176,11 @@ public class IntrospectedTableMyBatis3Impl extends IntrospectedTable {
     @Override
     public List<GeneratedJavaFile> getGeneratedJavaFiles() {
         List<GeneratedJavaFile> answer = new ArrayList<>();
-
+        //前面的calculateGenerators()方法中，将model、client的生成器都放在javaGenerators中了
+        //AbstractJavaGenerator是所有java生成器的抽象父类，重点关注JavaMapperGenerator、PrimaryKeyGenerator、BaseRecordGenerator等。
         for (AbstractJavaGenerator javaGenerator : javaGenerators) {
-            List<CompilationUnit> compilationUnits = javaGenerator
-                    .getCompilationUnits();
+        	//生成编译单元
+            List<CompilationUnit> compilationUnits = javaGenerator.getCompilationUnits();
             for (CompilationUnit compilationUnit : compilationUnits) {
                 GeneratedJavaFile gjf = new GeneratedJavaFile(compilationUnit,
                                 javaGenerator.getProject(),

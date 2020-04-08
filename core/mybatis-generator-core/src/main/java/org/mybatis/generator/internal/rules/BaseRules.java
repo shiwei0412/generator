@@ -36,6 +36,7 @@ public abstract class BaseRules implements Rules {
 
     protected IntrospectedTable introspectedTable;
 
+    //指定是否只生成domain类，如果设置为true，只生成domain类（不生成Mapper类），如果还配置了sqlMapGenerator，那么在mapper XML文件中，只生成resultMap元素
     protected final boolean isModelOnly;
 
     public BaseRules(IntrospectedTable introspectedTable) {

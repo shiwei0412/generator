@@ -64,8 +64,11 @@ public class InnerClassRenderer {
 
         sb.append("class "); //$NON-NLS-1$
         sb.append(innerClass.getType().getShortName());
+        //添加type参数，貌似指的是泛型
         sb.append(RenderingUtilities.renderTypeParameters(innerClass.getTypeParameters(), compilationUnit));
+        //添加父类
         sb.append(renderSuperClass(innerClass, compilationUnit));
+        //添加接口
         sb.append(renderSuperInterfaces(innerClass, compilationUnit));
         sb.append(" {"); //$NON-NLS-1$
         

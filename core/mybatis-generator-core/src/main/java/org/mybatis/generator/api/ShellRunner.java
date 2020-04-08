@@ -51,6 +51,7 @@ public class ShellRunner {
     private static final String HELP_2 = "-h"; //$NON-NLS-1$
 
     public static void main(String[] args) {
+    	
         if (args.length == 0) {
             usage();
             System.exit(0);

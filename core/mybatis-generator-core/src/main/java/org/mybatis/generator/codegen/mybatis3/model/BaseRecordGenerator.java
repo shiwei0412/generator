@@ -50,12 +50,14 @@ public class BaseRecordGenerator extends AbstractJavaGenerator {
         progressCallback.startTask(getString(
                 "Progress.8", table.toString())); //$NON-NLS-1$
         Plugin plugins = context.getPlugins();
+        //TODO shiwei 自定义实现注解的话，可以自定义commentGenerator实现，参考： https://blog.csdn.net/ieflex/article/details/81016832
         CommentGenerator commentGenerator = context.getCommentGenerator();
 
         FullyQualifiedJavaType type = new FullyQualifiedJavaType(
                 introspectedTable.getBaseRecordType());
         TopLevelClass topLevelClass = new TopLevelClass(type);
         topLevelClass.setVisibility(JavaVisibility.PUBLIC);
+        
         commentGenerator.addJavaFileComment(topLevelClass);
 
         FullyQualifiedJavaType superClass = getSuperClass();
@@ -85,15 +87,17 @@ public class BaseRecordGenerator extends AbstractJavaGenerator {
                     .containsProperty(introspectedColumn)) {
                 continue;
             }
-
+            //Field的注解是在getJavaBeansField()方法中添加的
             Field field = getJavaBeansField(introspectedColumn, context, introspectedTable);
+            //plugins是PluginAggregator的实例，PluginAggregator继承自CompositePlugin，所以这里调用的是CompositePlugin的modelFieldGenerated()方法。
+            //如果plugins中有任何一个返回false，那么对应生成的代码片段（JAVA或者XML）就不会被生成了
             if (plugins.modelFieldGenerated(field, topLevelClass,
                     introspectedColumn, introspectedTable,
                     Plugin.ModelClassType.BASE_RECORD)) {
                 topLevelClass.addField(field);
                 topLevelClass.addImportedType(field.getType());
             }
-
+            
             Method method = getJavaBeansGetter(introspectedColumn, context, introspectedTable);
             if (plugins.modelGetterMethodGenerated(method, topLevelClass,
                     introspectedColumn, introspectedTable,

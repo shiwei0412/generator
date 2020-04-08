@@ -43,6 +43,11 @@ import org.mybatis.generator.internal.ObjectFactory;
 import org.mybatis.generator.internal.PluginAggregator;
 import org.mybatis.generator.internal.db.DatabaseIntrospector;
 
+/**
+ * 对应context配置文件
+ * @author shiwei03
+ *
+ */
 public class Context extends PropertyHolder {
 
     private String id;
@@ -377,6 +382,8 @@ public class Context extends PropertyHolder {
             throws SQLException, InterruptedException {
 
         introspectedTables = new ArrayList<>();
+        //JAVA类型解析器，用于将数据库中的字段类型转换成java类型，如果默认的不满足条件的话，可以自定义java类型解析器，
+        //例如将double转换成BigDecimal，参考：https://blog.csdn.net/sinat_31396769/article/details/100072183
         JavaTypeResolver javaTypeResolver = ObjectFactory
                 .createJavaTypeResolver(this, warnings);
 
@@ -405,6 +412,8 @@ public class Context extends PropertyHolder {
                 }
 
                 callback.startTask(getString("Progress.1", tableName)); //$NON-NLS-1$
+                
+                //TODO shiwei 真正解析数据库表的地方
                 List<IntrospectedTable> tables = databaseIntrospector
                         .introspectTables(tc);
 
@@ -431,13 +440,14 @@ public class Context extends PropertyHolder {
         return steps;
     }
 
+    //TODO shiwei 生成文件内容的地方
     public void generateFiles(ProgressCallback callback,
             List<GeneratedJavaFile> generatedJavaFiles,
             List<GeneratedXmlFile> generatedXmlFiles,
             List<GeneratedKotlinFile> generatedKotlinFiles,
             List<String> warnings)
             throws InterruptedException {
-
+    	//1、插件实例化，生成pluginAggregator的地方，后面AbstractJavaGenerator的实现类在 getCompilationUnits()方法中会用到，例如：BaseRecordGenerator。
         pluginAggregator = new PluginAggregator();
         for (PluginConfiguration pluginConfiguration : pluginConfigurations) {
             Plugin plugin = ObjectFactory.createPlugin(this,
@@ -453,15 +463,15 @@ public class Context extends PropertyHolder {
         if (introspectedTables != null) {
             for (IntrospectedTable introspectedTable : introspectedTables) {
                 callback.checkCancel();
-
+                //2、初始化生成规则、包和表名，后面生成内容的时候会用到
                 introspectedTable.initialize();
+                //3、添加解析器参数，包括javaModelGenerator、javaClientGenerator、sqlMapGenerator，对应上了配置文件
                 introspectedTable.calculateGenerators(warnings, callback);
-                generatedJavaFiles.addAll(introspectedTable
-                        .getGeneratedJavaFiles());
-                generatedXmlFiles.addAll(introspectedTable
-                        .getGeneratedXmlFiles());
-                generatedKotlinFiles.addAll(introspectedTable
-                        .getGeneratedKotlinFiles());
+                
+                //TODO shiwei 生成GeneratedJavaFile、GeneratedXmlFile、GeneratedKotlinFile的地方
+                generatedJavaFiles.addAll(introspectedTable.getGeneratedJavaFiles()); //4、生成Java类 *Example，introspectedTable的 默认实现类是IntrospectedTableMyBatis3Impl
+                generatedXmlFiles.addAll(introspectedTable.getGeneratedXmlFiles());// 5、生成xml
+                generatedKotlinFiles.addAll(introspectedTable.getGeneratedKotlinFiles());
 
                 generatedJavaFiles.addAll(pluginAggregator
                         .contextGenerateAdditionalJavaFiles(introspectedTable));

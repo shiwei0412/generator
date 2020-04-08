@@ -48,6 +48,8 @@ public class PrimaryKeyGenerator extends AbstractJavaGenerator {
         FullyQualifiedTable table = introspectedTable.getFullyQualifiedTable();
         progressCallback.startTask(getString(
                 "Progress.7", table.toString())); //$NON-NLS-1$
+        //关于plugin部分的内容，参考1：https://blog.csdn.net/u011781521/article/details/78695396
+        //参考2：http://mybatis.org/generator/reference/pluggingIn.html#
         Plugin plugins = context.getPlugins();
         CommentGenerator commentGenerator = context.getCommentGenerator();
 
@@ -79,8 +81,11 @@ public class PrimaryKeyGenerator extends AbstractJavaGenerator {
                     .containsProperty(introspectedColumn)) {
                 continue;
             }
-
+            //Field的注解是在getJavaBeansField()方法中添加的
             Field field = getJavaBeansField(introspectedColumn, context, introspectedTable);
+            
+            //plugins是PluginAggregator的实例，PluginAggregator继承自CompositePlugin，所以这里调用的是CompositePlugin的modelFieldGenerated()方法。
+            //如果plugins中有任何一个返回false，那么对应生成的代码片段（JAVA或者XML）就不会被生成了
             if (plugins.modelFieldGenerated(field, topLevelClass,
                     introspectedColumn, introspectedTable,
                     Plugin.ModelClassType.PRIMARY_KEY)) {
@@ -88,6 +93,7 @@ public class PrimaryKeyGenerator extends AbstractJavaGenerator {
                 topLevelClass.addImportedType(field.getType());
             }
 
+            //同样，getter方法的注释在getJavaBeansGetter()方法中添加
             Method method = getJavaBeansGetter(introspectedColumn, context, introspectedTable);
             if (plugins.modelGetterMethodGenerated(method, topLevelClass,
                     introspectedColumn, introspectedTable,
@@ -96,6 +102,7 @@ public class PrimaryKeyGenerator extends AbstractJavaGenerator {
             }
 
             if (!introspectedTable.isImmutable()) {
+            	//同样，setter方法的注释在getJavaBeansGetter()方法中添加
                 method = getJavaBeansSetter(introspectedColumn, context, introspectedTable);
                 if (plugins.modelSetterMethodGenerated(method, topLevelClass,
                         introspectedColumn, introspectedTable,

@@ -28,6 +28,7 @@ import org.mybatis.generator.api.dom.java.TopLevelClass;
 
 public class TopLevelClassRenderer {
 
+	//TODO shiwei03 这里怎么渲染的，还需要仔细看一下。
     public String render(TopLevelClass topLevelClass) {
         List<String> lines = new ArrayList<>();
         

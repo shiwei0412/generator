@@ -49,6 +49,7 @@ public class InsertSelectiveMethodGenerator extends
         context.getCommentGenerator().addGeneralMethodComment(method,
                 introspectedTable);
 
+        //mapper注解，暂时是空实现
         addMapperAnnotations(method);
         
         if (context.getPlugins().clientInsertSelectiveMethodGenerated(

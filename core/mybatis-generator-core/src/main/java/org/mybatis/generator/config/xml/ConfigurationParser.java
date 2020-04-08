@@ -118,6 +118,8 @@ public class ConfigurationParser {
         try {
             factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
             DocumentBuilder builder = factory.newDocumentBuilder();
+            
+            //TODO shiwei03 1 设置校验的dtd资源文件	
             builder.setEntityResolver(new ParserEntityResolver());
 
             ParserErrorHandler handler = new ParserErrorHandler(warnings,
@@ -147,6 +149,7 @@ public class ConfigurationParser {
             if (rootNode.getNodeType() == Node.ELEMENT_NODE
                     && docType.getPublicId().equals(
                             XmlConstants.MYBATIS_GENERATOR_CONFIG_PUBLIC_ID)) {
+            	//2 解析配置
                 config = parseMyBatisGeneratorConfiguration(rootNode);
             } else {
                 throw new XMLParserException(getString("RuntimeError.5")); //$NON-NLS-1$

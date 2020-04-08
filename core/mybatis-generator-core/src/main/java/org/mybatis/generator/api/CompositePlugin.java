@@ -797,6 +797,7 @@ public abstract class CompositePlugin implements Plugin {
     public boolean modelFieldGenerated(Field field, TopLevelClass topLevelClass,
             IntrospectedColumn introspectedColumn, IntrospectedTable introspectedTable,
             ModelClassType modelClassType) {
+    	//常用的plugins有EqualsHashCodePlugin、SerializablePlugin、ToStringPlugin，
         for (Plugin plugin : plugins) {
             if (!plugin.modelFieldGenerated(field, topLevelClass, introspectedColumn, introspectedTable,
                     modelClassType)) {

@@ -76,6 +76,7 @@ public class DatabaseIntrospector {
         logger = LogFactory.getLog(getClass());
     }
 
+    //获取表的主键信息。参考 JDBC元数据操作（一）-- DatabaseMetaData接口详解：https://my.oschina.net/u/1264788/blog/1627926
     private void calculatePrimaryKey(FullyQualifiedTable table,
             IntrospectedTable introspectedTable) {
         ResultSet rs = null;
@@ -95,8 +96,10 @@ public class DatabaseIntrospector {
             // keep primary columns in key sequence order
             Map<Short, String> keyColumns = new TreeMap<>();
             while (rs.next()) {
-                String columnName = rs.getString("COLUMN_NAME"); //$NON-NLS-1$
-                short keySeq = rs.getShort("KEY_SEQ"); //$NON-NLS-1$
+                String columnName = rs.getString("COLUMN_NAME"); //$NON-NLS-1$  列名
+                //序列号（当一个表有多个主键时，每个主键都有个序列号，short类型，例如test_plan_validate_result表有三个主键，
+                //id、client_type、create_uid，则keyColumns的结果应该是{1=id，2=clientType，3=create_uid}，这里rs.next()迭代时并非是1、2、3的顺序
+                short keySeq = rs.getShort("KEY_SEQ"); //$NON-NLS-1$  
                 keyColumns.put(keySeq, columnName);
             }
 
@@ -169,10 +172,12 @@ public class DatabaseIntrospector {
      * @throws SQLException
      *             if any errors in introspection
      */
+    //TODO shiwei 解析数据库表的地方，入参tc是对应一个table配置
     public List<IntrospectedTable> introspectTables(TableConfiguration tc)
             throws SQLException {
 
         // get the raw columns from the DB
+    	//解析数据库表的列
         Map<ActualTableName, List<IntrospectedColumn>> columns = getColumns(tc);
 
         if (columns.isEmpty()) {
@@ -180,22 +185,26 @@ public class DatabaseIntrospector {
                     tc.getSchema(), tc.getTableName()));
             return Collections.emptyList();
         }
-
+        //移除table中配置的ignoreColumn
         removeIgnoredColumns(tc, columns);
+        //根据table中的配置，对表的一些属性做处理，例如：columnRenamingRule是对列名重命名，useActualColumnNames（属性设置为true，生成的model类会直接使用column本身的名字）等
         calculateExtraColumnInformation(tc, columns);
+        //应用columnOverride规则
         applyColumnOverrides(tc, columns);
+        //处理主键列
         calculateIdentityColumns(tc, columns);
 
+        //实例化table，并初始化一些属性
         List<IntrospectedTable> introspectedTables = calculateIntrospectedTables(
                 tc, columns);
 
         // now introspectedTables has all the columns from all the
         // tables in the configuration. Do some validation...
-
+        //对标做一下校验
         Iterator<IntrospectedTable> iter = introspectedTables.iterator();
         while (iter.hasNext()) {
             IntrospectedTable introspectedTable = iter.next();
-
+            //表没有列的校验
             if (!introspectedTable.hasAnyColumns()) {
                 // add warning that the table has no columns, remove from the
                 // list
@@ -205,6 +214,7 @@ public class DatabaseIntrospector {
                 iter.remove();
             } else if (!introspectedTable.hasPrimaryKeyColumns()
                     && !introspectedTable.hasBaseColumns()) {
+            	//表没有主键列且没有base列的校验，相当于只有BOLB列时需要报WARNING，introspectedTable一共有三种列：primaryKeyColumns、baseColumns、blobColumns
                 // add warning that the table has only BLOB columns, remove from
                 // the list
                 String warning = getString(
@@ -215,6 +225,7 @@ public class DatabaseIntrospector {
                 // now make sure that all columns called out in the
                 // configuration
                 // actually exist
+            	//校验配置文件中的override列、ignore列、主键列，看它们是否存在于table中
                 reportIntrospectionWarnings(introspectedTable, tc,
                         introspectedTable.getFullyQualifiedTable());
             }
@@ -231,8 +242,7 @@ public class DatabaseIntrospector {
                     .iterator();
             while (tableColumns.hasNext()) {
                 IntrospectedColumn introspectedColumn = tableColumns.next();
-                if (tc
-                        .isColumnIgnored(introspectedColumn
+                if (tc.isColumnIgnored(introspectedColumn
                                 .getActualColumnName())) {
                     tableColumns.remove();
                     if (logger.isDebugEnabled()) {
@@ -250,6 +260,16 @@ public class DatabaseIntrospector {
         StringBuilder sb = new StringBuilder();
         Pattern pattern = null;
         String replaceString = null;
+        
+        /**
+         * 该元素会在根据表中列名计算对象属性名之前先重命名列名，非常适合用于表中的列都有公用的前缀字符串的时候，
+            比如列名为：CUST_ID,CUST_NAME,CUST_EMAIL,CUST_ADDRESS等；
+            那么就可以设置searchString为"^CUST_"，并使用空白替换，那么生成的Customer对象中的属性名称就不是
+            custId,custName等，而是先被替换为ID,NAME,EMAIL,然后变成属性：id，name，email；
+            
+            注意，MBG是使用java.util.regex.Matcher.replaceAll来替换searchString和replaceString的，
+            如果使用了columnOverride元素，该属性无效；
+         */
         if (tc.getColumnRenamingRule() != null) {
             pattern = Pattern.compile(tc.getColumnRenamingRule()
                     .getSearchString());
@@ -257,8 +277,7 @@ public class DatabaseIntrospector {
             replaceString = replaceString == null ? "" : replaceString; //$NON-NLS-1$
         }
 
-        for (Map.Entry<ActualTableName, List<IntrospectedColumn>> entry : columns
-                .entrySet()) {
+        for (Map.Entry<ActualTableName, List<IntrospectedColumn>> entry : columns.entrySet()) {
             for (IntrospectedColumn introspectedColumn : entry.getValue()) {
                 String calculatedColumnName;
                 if (pattern == null) {
@@ -270,12 +289,11 @@ public class DatabaseIntrospector {
                     calculatedColumnName = matcher.replaceAll(replaceString);
                 }
 
-                if (isTrue(tc
-                        .getProperty(PropertyRegistry.TABLE_USE_ACTUAL_COLUMN_NAMES))) {
+                //TODO shiwei 如果设置为true，生成的model类会直接使用column本身的名字，而不会再使用驼峰命名方法
+                if (isTrue(tc.getProperty(PropertyRegistry.TABLE_USE_ACTUAL_COLUMN_NAMES))) {
                     introspectedColumn.setJavaProperty(
                             JavaBeansUtil.getValidPropertyName(calculatedColumnName));
-                } else if (isTrue(tc
-                                .getProperty(PropertyRegistry.TABLE_USE_COMPOUND_PROPERTY_NAMES))) {
+                } else if (isTrue(tc.getProperty(PropertyRegistry.TABLE_USE_COMPOUND_PROPERTY_NAMES))) {
                     sb.setLength(0);
                     sb.append(calculatedColumnName);
                     sb.append('_');
@@ -288,6 +306,7 @@ public class DatabaseIntrospector {
                             JavaBeansUtil.getCamelCaseString(calculatedColumnName, false));
                 }
 
+                //TODO shiwei 根据jdbcType计算java类型
                 FullyQualifiedJavaType fullyQualifiedJavaType = javaTypeResolver
                         .calculateJavaType(introspectedColumn);
 
@@ -327,12 +346,13 @@ public class DatabaseIntrospector {
                     }
                 }
 
+                //!-- 自动识别数据库关键字，默认false，如果设置为true，根据SqlReservedWords中定义的关键字列表；
                 if (context.autoDelimitKeywords()
                         && SqlReservedWords.containsWord(introspectedColumn
                             .getActualColumnName())) {
                     introspectedColumn.setColumnNameDelimited(true);
                 }
-
+                //delimitAllColumns：设置是否所有生成的SQL中的列名都使用标识符引起来。默认为false，delimitIdentifiers参考context的属性
                 if (tc.isAllColumnDelimitingEnabled()) {
                     introspectedColumn.setColumnNameDelimited(true);
                 }
@@ -342,6 +362,23 @@ public class DatabaseIntrospector {
 
     private void calculateIdentityColumns(TableConfiguration tc,
             Map<ActualTableName, List<IntrospectedColumn>> columns) {
+    	
+    	/**
+    	 * generatedKey用于生成生成主键的方法，
+            如果设置了该元素，MBG会在生成的<insert>元素中生成一条正确的<selectKey>元素，该元素可选
+            column:主键的列名；
+            sqlStatement：要生成的selectKey语句，有以下可选项：
+                Cloudscape:相当于selectKey的SQL为： VALUES IDENTITY_VAL_LOCAL()
+                DB2       :相当于selectKey的SQL为： VALUES IDENTITY_VAL_LOCAL()
+                DB2_MF    :相当于selectKey的SQL为：SELECT IDENTITY_VAL_LOCAL() FROM SYSIBM.SYSDUMMY1
+                Derby      :相当于selectKey的SQL为：VALUES IDENTITY_VAL_LOCAL()
+                HSQLDB      :相当于selectKey的SQL为：CALL IDENTITY()
+                Informix  :相当于selectKey的SQL为：select dbinfo('sqlca.sqlerrd1') from systables where tabid=1
+                MySql      :相当于selectKey的SQL为：SELECT LAST_INSERT_ID()
+                SqlServer :相当于selectKey的SQL为：SELECT SCOPE_IDENTITY()
+                SYBASE      :相当于selectKey的SQL为：SELECT @@IDENTITY
+                JDBC      :相当于在生成的insert元素上添加useGeneratedKeys="true"和keyProperty属性
+    	 */
         GeneratedKey gk = tc.getGeneratedKey();
         if (gk == null) {
             // no generated key, then no identity or sequence columns
@@ -372,6 +409,10 @@ public class DatabaseIntrospector {
         }
     }
 
+    /** 
+     * shiwei03  用来修改表中某个列的属性，MBG会使用修改后的列来生成domain的属性；
+	    column:要重新设置的列名；注意，一个table元素中可以有多个columnOverride元素哈~
+     */
     private void applyColumnOverrides(TableConfiguration tc,
             Map<ActualTableName, List<IntrospectedColumn>> columns) {
         for (Map.Entry<ActualTableName, List<IntrospectedColumn>> entry : columns
@@ -427,12 +468,23 @@ public class DatabaseIntrospector {
         }
     }
 
+    //TODO shiwei 解析列的地方
     private Map<ActualTableName, List<IntrospectedColumn>> getColumns(
             TableConfiguration tc) throws SQLException {
         String localCatalog;
         String localSchema;
         String localTableName;
 
+        /**
+         * 注意：大小写敏感问题。正常情况下，MBG会自动的去识别数据库标识符的大小写敏感度，在一般情况下，MBG会
+            根据设置的schema，catalog或tablename去查询数据表，按照下面的流程：
+            1，如果schema，catalog或tablename中有空格，那么设置的是什么格式，就精确的使用指定的大小写格式去查询；
+            2，否则，如果数据库的标识符使用大写的，那么MBG自动把表名变成大写再查找；
+            3，否则，如果数据库的标识符使用小写的，那么MBG自动把表名变成小写再查找；
+            4，否则，使用指定的大小写格式查询；
+        另外的，如果在创建表的时候，使用的""把数据库对象规定大小写，就算数据库标识符是使用的大写，在这种情况下也会使用给定的大小写来创建表名；
+        这个时候，请设置delimitIdentifiers="true"即可保留大小写格式；
+         */
         boolean delimitIdentifiers = tc.isDelimitIdentifiers()
                 || stringContainsSpace(tc.getCatalog())
                 || stringContainsSpace(tc.getSchema())
@@ -462,6 +514,7 @@ public class DatabaseIntrospector {
             localTableName = tc.getTableName();
         }
 
+        // Wildcard 通配符，escaping 转义
         if (tc.isWildcardEscapingEnabled()) {
             String escapeString = databaseMetaData.getSearchStringEscape();
 
@@ -627,15 +680,16 @@ public class DatabaseIntrospector {
                     tc.getDomainObjectRenamingRule(),
                     context);
 
-            IntrospectedTable introspectedTable = ObjectFactory
-                    .createIntrospectedTable(tc, table, context);
+            //根据context的 targetRuntime选项，实例化一个table的实现，大多时候都是IntrospectedTableMyBatis3Impl对象
+            IntrospectedTable introspectedTable = ObjectFactory.createIntrospectedTable(tc, table, context);
 
             for (IntrospectedColumn introspectedColumn : entry.getValue()) {
                 introspectedTable.addColumn(introspectedColumn);
             }
 
+            //获取表的主键信息
             calculatePrimaryKey(table, introspectedTable);
-
+            //获取表的一些其他信息
             enhanceIntrospectedTable(introspectedTable);
 
             answer.add(introspectedTable);
@@ -651,6 +705,8 @@ public class DatabaseIntrospector {
      * <p>If there is any error, we just add a warning and continue.
      *
      * @param introspectedTable the introspected table to enhance
+     * 
+     * 获取表的一些其他信息
      */
     private void enhanceIntrospectedTable(IntrospectedTable introspectedTable) {
         try {
@@ -659,7 +715,9 @@ public class DatabaseIntrospector {
             ResultSet rs = databaseMetaData.getTables(fqt.getIntrospectedCatalog(), fqt.getIntrospectedSchema(),
                     fqt.getIntrospectedTableName(), null);
             if (rs.next()) {
+            	//REMARKS-表备注
                 String remarks = rs.getString("REMARKS"); //$NON-NLS-1$
+                //TABLE_TYPE-表类型，,典型的类型是 "TABLE"、"VIEW"、"SYSTEM TABLE"、"GLOBAL TEMPORARY"、"LOCAL TEMPORARY"、"ALIAS" 和 "SYNONYM"。  
                 String tableType = rs.getString("TABLE_TYPE"); //$NON-NLS-1$
                 introspectedTable.setRemarks(remarks);
                 introspectedTable.setTableType(tableType);

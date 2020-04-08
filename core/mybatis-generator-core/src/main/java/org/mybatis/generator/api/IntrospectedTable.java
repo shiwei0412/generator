@@ -389,6 +389,7 @@ public abstract class IntrospectedTable {
         calculateModelAttributes();
         calculateXmlAttributes();
 
+        //对应context的defaultModelType配置
         if (tableConfiguration.getModelType() == ModelType.HIERARCHICAL) {
             rules = new HierarchicalModelRules(this);
         } else if (tableConfiguration.getModelType() == ModelType.FLAT) {
@@ -651,6 +652,10 @@ public abstract class IntrospectedTable {
         return isTrue(propertyHolder.getProperty(PropertyRegistry.ANY_ENABLE_SUB_PACKAGES));
     }
 
+    /**
+     * 计算包名
+     * @return
+     */
     protected String calculateJavaClientInterfacePackage() {
         JavaClientGeneratorConfiguration config = context
                 .getJavaClientGeneratorConfiguration();
@@ -670,8 +675,9 @@ public abstract class IntrospectedTable {
         if (context.getJavaClientGeneratorConfiguration() == null) {
             return;
         }
-
+        
         StringBuilder sb = new StringBuilder();
+        //以下是生成Mapper全量文件名
         sb.append(calculateJavaClientInterfacePackage());
         sb.append('.');
         if (stringHasValue(tableConfiguration.getMapperName())) {
@@ -686,6 +692,7 @@ public abstract class IntrospectedTable {
         }
         setMyBatis3JavaMapperType(sb.toString());
 
+        //TODO shiwei 以下是生成SqlProvider全量文件名，还不知道是干什么的
         sb.setLength(0);
         sb.append(calculateJavaClientInterfacePackage());
         sb.append('.');
@@ -701,6 +708,7 @@ public abstract class IntrospectedTable {
         }
         setMyBatis3SqlProviderType(sb.toString());
         
+        //TODO shiwei 以下是生成DynamicSqlSupport全量文件名，还不知道是干什么的
         sb.setLength(0);
         sb.append(calculateJavaClientInterfacePackage());
         sb.append('.');

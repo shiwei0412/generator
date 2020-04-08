@@ -28,6 +28,11 @@ import org.mybatis.generator.internal.util.EqualsUtil;
 import org.mybatis.generator.internal.util.HashCodeUtil;
 import org.mybatis.generator.internal.util.messages.Messages;
 
+/**
+ * table所有的配置都在这里了
+ * @author shiwei03
+ *
+ */
 public class TableConfiguration extends PropertyHolder {
 
     private boolean insertStatementEnabled;
@@ -42,6 +47,7 @@ public class TableConfiguration extends PropertyHolder {
 
     private boolean deleteByExampleStatementEnabled;
 
+    //对应enableCountByExample配置（默认true）：MyBatis3Simple为false，指定是否生成动态查询总条数语句（用于分页的总条数查询）；
     private boolean countByExampleStatementEnabled;
 
     private boolean updateByExampleStatementEnabled;

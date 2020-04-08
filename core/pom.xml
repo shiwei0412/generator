@@ -290,8 +290,23 @@
         <artifactId>reflections</artifactId>
         <version>0.9.12</version>
       </dependency>
+      
+      <!-- https://mvnrepository.com/artifact/mysql/mysql-connector-java -->
+		<dependency>
+		    <groupId>mysql</groupId>
+		    <artifactId>mysql-connector-java</artifactId>
+		    <version>5.1.48</version>
+		</dependency>
     </dependencies>
   </dependencyManagement>
+
+  <repositories>
+      <repository>
+          <id>alimaven</id>
+          <name>aliyun maven</name>
+          <url>http://maven.aliyun.com/nexus/content/groups/public/</url>
+      </repository>
+   </repositories>
 
   <modules>
     <module>mybatis-generator-core</module>
