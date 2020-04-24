@@ -1,5 +1,5 @@
 /**
- *    Copyright 2006-2019 the original author or authors.
+ *    Copyright 2006-2020 the original author or authors.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -37,6 +37,9 @@ import org.mybatis.generator.api.dom.java.Parameter;
 import org.mybatis.generator.api.dom.java.TopLevelClass;
 import org.mybatis.generator.codegen.AbstractJavaGenerator;
 import org.mybatis.generator.codegen.RootClassInfo;
+import org.mybatis.generator.config.CommentGeneratorConfiguration;
+import org.mybatis.generator.config.PropertyRegistry;
+import org.mybatis.generator.internal.XingtianCommentGenerator;
 
 public class BaseRecordGenerator extends AbstractJavaGenerator {
 
@@ -51,7 +54,13 @@ public class BaseRecordGenerator extends AbstractJavaGenerator {
                 "Progress.8", table.toString())); //$NON-NLS-1$
         Plugin plugins = context.getPlugins();
         //TODO shiwei 自定义实现注解的话，可以自定义commentGenerator实现，参考： https://blog.csdn.net/ieflex/article/details/81016832
-        CommentGenerator commentGenerator = context.getCommentGenerator();
+//        CommentGenerator commentGenerator = context.getCommentGenerator();
+        CommentGenerator commentGenerator = null;
+        if(introspectedTable.getTableConfiguration().isUseXingtianExecutor()) {
+        	commentGenerator = new XingtianCommentGenerator();
+        }else {
+        	commentGenerator = context.getCommentGenerator();
+        }
 
         FullyQualifiedJavaType type = new FullyQualifiedJavaType(
                 introspectedTable.getBaseRecordType());
@@ -60,6 +69,13 @@ public class BaseRecordGenerator extends AbstractJavaGenerator {
         
         commentGenerator.addJavaFileComment(topLevelClass);
 
+        //TODO shiwei 添加刑天框架注解。
+        if(commentGenerator instanceof XingtianCommentGenerator) {
+        	topLevelClass.addImportedType(new FullyQualifiedJavaType("com.netease.mail.dp.fuxi.common.iqmc.annotation.QueryDim"));
+        	topLevelClass.addImportedType(new FullyQualifiedJavaType("com.netease.mail.dp.fuxi.common.iqmc.annotation.QueryIndex"));
+        	topLevelClass.addImportedType(new FullyQualifiedJavaType("com.netease.mail.dp.fuxi.common.iqmc.annotation.QueryModel"));
+        }
+        
         FullyQualifiedJavaType superClass = getSuperClass();
         if (superClass != null) {
             topLevelClass.setSuperClass(superClass);
@@ -188,6 +204,7 @@ public class BaseRecordGenerator extends AbstractJavaGenerator {
                 sb.append(" = "); //$NON-NLS-1$
                 sb.append(introspectedColumn.getJavaProperty());
                 sb.append(';');
+                //添加方法体
                 method.addBodyLine(sb.toString());
             }
         }

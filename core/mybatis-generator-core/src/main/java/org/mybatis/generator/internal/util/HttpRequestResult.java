@@ -13,18 +13,28 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
-package org.mybatis.generator.logging;
+package org.mybatis.generator.internal.util;
 
-public interface Log {
+/**
+ * Created by wangwei on 2017/7/19.
+ */
+public class HttpRequestResult {
 
-    boolean isDebugEnabled();
+	private int httpStatusCode;
 
-    void error(String s, Throwable e);
+	private String responseBody;
 
-    void error(String s);
+	public HttpRequestResult(int statusCode, String responseBody) {
+		this.httpStatusCode = statusCode;
+		this.responseBody = responseBody;
+	}
 
-    void debug(String s);
+	public int getHttpStatusCode() {
+		return httpStatusCode;
+	}
 
-    void warn(String s);
-    
+	public String getResponseBody() {
+		return responseBody;
+	}
+
 }

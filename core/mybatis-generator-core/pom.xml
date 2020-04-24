@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-       Copyright 2006-2019 the original author or authors.
+       Copyright 2006-2020 the original author or authors.
 
        Licensed under the Apache License, Version 2.0 (the "License");
        you may not use this file except in compliance with the License.
@@ -68,7 +68,7 @@
           </execution>
         </executions>
       </plugin>
-      <plugin>
+<!--       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
         <configuration>
@@ -79,20 +79,51 @@
           </archive>
         </configuration>
       </plugin>
+      
+      <plugin>
+           <groupId>org.apache.maven.plugins</groupId>
+           <artifactId>maven-dependency-plugin</artifactId>
+           <executions>
+               <execution>
+                   <id>copy-dependencies</id>
+                   <phase>prepare-package</phase>
+                   <goals>
+                       <goal>copy-dependencies</goal>
+                   </goals>
+                   <configuration>
+                       <outputDirectory>${project.build.directory}/lib</outputDirectory>
+                       <overWriteReleases>false</overWriteReleases>
+                       <overWriteSnapshots>false</overWriteSnapshots>
+                       <overWriteIfNewer>true</overWriteIfNewer>
+                   </configuration>
+               </execution>
+           </executions>
+       </plugin> -->
+
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-assembly-plugin</artifactId>
         <configuration>
-          <descriptors>
+          <!-- <descriptors>
             <descriptor>${project.basedir}/src/main/assembly/src.xml</descriptor>
-          </descriptors>
+          </descriptors> -->
+          <descriptorRefs>
+              <descriptorRef>jar-with-dependencies</descriptorRef>
+          </descriptorRefs>
+          <archive>  
+	          <manifest>  
+	            <mainClass>org.mybatis.generator.api.ShellRunner</mainClass>  
+	          </manifest>  
+	        </archive> 
         </configuration>
-        <executions>
+       <executions>
           <execution>
             <id>bundle</id>
             <goals>
+              <!-- 只运行一次 -->
               <goal>single</goal>
             </goals>
+            <!-- 绑定到package生命周期 -->
             <phase>package</phase>
           </execution>
         </executions>
@@ -159,35 +190,37 @@
     </plugins>
   </build>
   
+  <!--  当我们用maven install生成最终的构件包ProjectABC.jar，会包含标注为scope=compile的构件的jar包，
+      而不会包含标注为scope=provided的构件的jar包。这也避免了此类构件当部署到目标容器后产生包依赖冲突。 -->
   <dependencies>
     <dependency>
       <groupId>log4j</groupId>
       <artifactId>log4j</artifactId>
-      <scope>provided</scope>
+<!--       <scope>provided</scope> -->
       <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
-      <scope>provided</scope>
+<!--       <scope>provided</scope> -->
       <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.apache.logging.log4j</groupId>
       <artifactId>log4j-api</artifactId>
-      <scope>provided</scope>
+<!--       <scope>provided</scope> -->
       <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>commons-logging</groupId>
       <artifactId>commons-logging</artifactId>
-      <scope>provided</scope>
+<!--       <scope>provided</scope> -->
       <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.apache.ant</groupId>
       <artifactId>ant</artifactId>
-      <scope>provided</scope>
+<!--       <scope>provided</scope> -->
       <optional>true</optional>
     </dependency>
     <dependency>
@@ -232,6 +265,14 @@
         <groupId>com.alibaba</groupId>
         <artifactId>fastjson</artifactId>
      </dependency>
+     <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+        </dependency>
+     <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+        </dependency>
   </dependencies>
 
   <distributionManagement>

@@ -1,5 +1,5 @@
 /**
- *    Copyright 2006-2019 the original author or authors.
+ *    Copyright 2006-2020 the original author or authors.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -74,6 +74,7 @@ public class ShellRunner {
         List<String> warnings = new ArrayList<>();
 
         String configfile = arguments.get(CONFIG_FILE);
+        System.out.println(configfile);
         File configurationFile = new File(configfile);
         if (!configurationFile.exists()) {
             writeLine(getString("RuntimeError.1", configfile)); //$NON-NLS-1$

@@ -1,0 +1,514 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+       Copyright 2006-2020 the original author or authors.
+
+       Licensed under the Apache License, Version 2.0 (the "License");
+       you may not use this file except in compliance with the License.
+       You may obtain a copy of the License at
+
+          http://www.apache.org/licenses/LICENSE-2.0
+
+       Unless required by applicable law or agreed to in writing, software
+       distributed under the License is distributed on an "AS IS" BASIS,
+       WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+       See the License for the specific language governing permissions and
+       limitations under the License.
+
+-->
+
+<!DOCTYPE generatorConfiguration
+
+    PUBLIC "-//mybatis.org//DTD MyBatis Generator Configuration 1.0//EN"
+
+    "http://mybatis.org/dtd/mybatis-generator-config_1_0.dtd">
+
+<generatorConfiguration>
+
+
+
+  <classPathEntry location="mysql-connector-java-5.1.35.jar;fastjson-1.2.58.jar"/>
+
+  
+
+  <context id="context1" targetRuntime="MyBatis3">
+
+    <property name="beginningDelimiter" value="`"/>
+
+    <property name="endingDelimiter" value="`"/>
+
+    <plugin type="org.mybatis.generator.plugins.EqualsHashCodePlugin"/>
+
+    <plugin type="org.mybatis.generator.plugins.SerializablePlugin"/>
+
+    <plugin type="org.mybatis.generator.plugins.ToStringPlugin"/>
+
+
+
+
+
+    <commentGenerator type="org.mybatis.generator.internal.DqsCommentGenerator">
+
+      <!-- <commentGenerator type="mybatis.MyCommentGenerator"> -->
+
+      <!-- ���Ԫ������ȥ��ָ�����ɵ�ע�����Ƿ�������ɵ����� false:��ʾ���� -->
+
+      <!-- ����������ڣ�����ɼ�ʹ�޸�һ���ֶΣ�����ʵ�����������Զ��ᷢ���仯�������ڰ汾���ƣ���������Ϊtrue -->
+
+      <property name="suppressDate" value="true" />
+
+      <!-- �Ƿ�ȥ���Զ����ɵ�ע�� true���� �� false:�� -->
+
+      <!-- <property name="suppressAllComments" value="false" /> -->
+
+    </commentGenerator>
+
+    <jdbcConnection driverClass="com.mysql.jdbc.Driver"
+
+                    connectionURL="jdbc:mysql://10.246.139.124:3306/kuafu?characterEncoding=UTF-8"
+
+                    userId="webedit" password="webedit" />
+
+
+
+    <javaModelGenerator targetPackage="com.netease.mail.dp.kuafu.dao.po.auto"
+
+                        targetProject="src/main/java" />
+
+    <sqlMapGenerator targetPackage="/"
+
+                     targetProject="src/main/resources/mybatis/auto" />
+
+    <javaClientGenerator targetPackage="com.netease.mail.dp.kuafu.dao.auto"
+
+                         targetProject="src/main/java" type="XMLMAPPER" />
+
+
+    <table tableName="dm_yx_fuxi_item_sales_i" domainObjectName="AccessOverviewHourDto"
+
+           enableCountByExample="false" enableUpdateByExample="false"
+
+           enableDeleteByExample="false" enableSelectByExample="false"
+
+           selectByExampleQueryId="false" delimitAllColumns="true">
+
+
+      <property name="isDqsModel" value="true"/>
+
+
+      <generatedKey column="id" sqlStatement="MySql" identity="true"/>
+
+    </table>
+
+
+    <!--  <table tableName="app_config_management" domainObjectName="AppConfigManagement"
+
+           enableCountByExample="false" enableUpdateByExample="false"
+
+           enableDeleteByExample="false" enableSelectByExample="false"
+
+           selectByExampleQueryId="false" delimitAllColumns="true">
+
+      <generatedKey column="id" sqlStatement="MySql" identity="true"/>
+
+    </table>
+
+
+
+    <table tableName="app_config_terminal_bury" domainObjectName="AppConfigTerminalBury"
+
+           enableCountByExample="false" enableUpdateByExample="false"
+
+           enableDeleteByExample="false" enableSelectByExample="false"
+
+           selectByExampleQueryId="false" delimitAllColumns="true">
+
+      <generatedKey column="id" sqlStatement="MySql" identity="true"/>
+
+    </table>
+
+
+
+    <table tableName="app_config_detail" domainObjectName="AppConfigDetail"
+
+           enableCountByExample="false" enableUpdateByExample="false"
+
+           enableDeleteByExample="false" enableSelectByExample="false"
+
+           selectByExampleQueryId="false" delimitAllColumns="true">
+
+      <generatedKey column="id" sqlStatement="MySql" identity="true"/>
+
+    </table>
+
+
+
+    <table tableName="auto_test" domainObjectName="AutoTest"
+
+           enableCountByExample="false" enableUpdateByExample="false"
+
+           enableDeleteByExample="false" enableSelectByExample="false"
+
+           selectByExampleQueryId="false" delimitAllColumns="true">
+
+      <generatedKey column="id" sqlStatement="MySql" identity="true"/>
+
+    </table>
+
+
+
+    <table tableName="auto_test_result" domainObjectName="AutoTestResult"
+
+           enableCountByExample="false" enableUpdateByExample="false"
+
+           enableDeleteByExample="false" enableSelectByExample="false"
+
+           selectByExampleQueryId="false" delimitAllColumns="true">
+
+      <generatedKey column="id" sqlStatement="MySql" identity="true"/>
+
+    </table>
+
+
+
+    <table tableName="bury" domainObjectName="Bury"
+
+           enableCountByExample="false" enableUpdateByExample="false"
+
+           enableDeleteByExample="false" enableSelectByExample="false"
+
+           selectByExampleQueryId="false" delimitAllColumns="true">
+
+      <generatedKey column="id" sqlStatement="MySql" identity="true"/>
+
+    </table>
+
+
+
+    <table tableName="bury_log" domainObjectName="BuryLog"
+
+           enableCountByExample="false" enableUpdateByExample="false"
+
+           enableDeleteByExample="false" enableSelectByExample="false"
+
+           selectByExampleQueryId="false" delimitAllColumns="true">
+
+      <generatedKey column="id" sqlStatement="MySql" identity="true"/>
+
+    </table>
+
+
+
+    <table tableName="dictionary" domainObjectName="Dictionary"
+
+           enableCountByExample="false" enableUpdateByExample="false"
+
+           enableDeleteByExample="false" enableSelectByExample="false"
+
+           selectByExampleQueryId="false" delimitAllColumns="true">
+
+      <generatedKey column="id" sqlStatement="MySql" identity="true"/>
+
+    </table>
+
+
+
+    <table tableName="file" domainObjectName="File"
+
+           enableCountByExample="false" enableUpdateByExample="false"
+
+           enableDeleteByExample="false" enableSelectByExample="false"
+
+           selectByExampleQueryId="false" delimitAllColumns="true">
+
+      <generatedKey column="id" sqlStatement="MySql" identity="true"/>
+
+    </table>
+
+
+
+    <table tableName="file_ref" domainObjectName="FileRef"
+
+           enableCountByExample="false" enableUpdateByExample="false"
+
+           enableDeleteByExample="false" enableSelectByExample="false"
+
+           selectByExampleQueryId="false" delimitAllColumns="true">
+
+      <generatedKey column="id" sqlStatement="MySql" identity="true"/>
+
+    </table>
+
+
+
+    <table tableName="module" domainObjectName="Module"
+
+           enableCountByExample="false" enableUpdateByExample="false"
+
+           enableDeleteByExample="false" enableSelectByExample="false"
+
+           selectByExampleQueryId="false" delimitAllColumns="true">
+
+      <generatedKey column="id" sqlStatement="MySql" identity="true"/>
+
+    </table>
+
+
+
+    <table tableName="page" domainObjectName="Page"
+
+           enableCountByExample="false" enableUpdateByExample="false"
+
+           enableDeleteByExample="false" enableSelectByExample="false"
+
+           selectByExampleQueryId="false" delimitAllColumns="true">
+
+      <generatedKey column="id" sqlStatement="MySql" identity="true"/>
+
+    </table>
+
+
+
+    <table tableName="parameter" domainObjectName="Parameter"
+
+           enableCountByExample="false" enableUpdateByExample="false"
+
+           enableDeleteByExample="false" enableSelectByExample="false"
+
+           selectByExampleQueryId="false" delimitAllColumns="true">
+
+      <generatedKey column="id" sqlStatement="MySql" identity="true"/>
+
+    </table>
+
+
+
+    <table tableName="parameter_ref" domainObjectName="ParameterRef"
+
+           enableCountByExample="false" enableUpdateByExample="false"
+
+           enableDeleteByExample="false" enableSelectByExample="false"
+
+           selectByExampleQueryId="false" delimitAllColumns="true">
+
+      <generatedKey column="id" sqlStatement="MySql" identity="true"/>
+
+    </table>
+
+
+
+    <table tableName="project" domainObjectName="Project"
+
+           enableCountByExample="false" enableUpdateByExample="false"
+
+           enableDeleteByExample="false" enableSelectByExample="false"
+
+           selectByExampleQueryId="false" delimitAllColumns="true">
+
+      <generatedKey column="id" sqlStatement="MySql" identity="true"/>
+
+    </table>
+
+
+
+    <table tableName="project_fixed_user" domainObjectName="ProjectFixedUser"
+
+           enableCountByExample="false" enableUpdateByExample="false"
+
+           enableDeleteByExample="false" enableSelectByExample="false"
+
+           selectByExampleQueryId="false" delimitAllColumns="true">
+
+      <generatedKey column="id" sqlStatement="MySql" identity="true"/>
+
+    </table>
+
+
+
+    <table tableName="project_version" domainObjectName="ProjectVersion"
+
+           enableCountByExample="false" enableUpdateByExample="false"
+
+           enableDeleteByExample="false" enableSelectByExample="false"
+
+           selectByExampleQueryId="false" delimitAllColumns="true">
+
+      <generatedKey column="id" sqlStatement="MySql" identity="true"/>
+
+    </table>
+
+
+
+    <table tableName="terminal_bury" domainObjectName="TerminalBury"
+
+           enableCountByExample="false" enableUpdateByExample="false"
+
+           enableDeleteByExample="false" enableSelectByExample="false"
+
+           selectByExampleQueryId="false" delimitAllColumns="true">
+
+      <generatedKey column="id" sqlStatement="MySql" identity="true"/>
+
+      <columnOverride column="test_content" javaType="java.lang.String" jdbcType="VARCHAR"/>
+
+      <columnOverride column="online_content" javaType="java.lang.String" jdbcType="VARCHAR"/>
+
+    </table>
+
+
+
+    <table tableName="terminal_bury_assign" domainObjectName="TerminalBuryAssign"
+
+           enableCountByExample="false" enableUpdateByExample="false"
+
+           enableDeleteByExample="false" enableSelectByExample="false"
+
+           selectByExampleQueryId="false" delimitAllColumns="true">
+
+      <generatedKey column="id" sqlStatement="MySql" identity="true"/>
+
+    </table>
+
+
+
+    <table tableName="terminal_bury_progress" domainObjectName="TerminalBuryProgress"
+
+           enableCountByExample="false" enableUpdateByExample="false"
+
+           enableDeleteByExample="false" enableSelectByExample="false"
+
+           selectByExampleQueryId="false" delimitAllColumns="true">
+
+      <generatedKey column="id" sqlStatement="MySql" identity="true"/>
+
+    </table>
+
+
+
+    <table tableName="terminal_bury_unpass" domainObjectName="TerminalBuryUnpass"
+
+           enableCountByExample="false" enableUpdateByExample="false"
+
+           enableDeleteByExample="false" enableSelectByExample="false"
+
+           selectByExampleQueryId="false" delimitAllColumns="true">
+
+      <generatedKey column="id" sqlStatement="MySql" identity="true"/>
+
+    </table>
+
+
+
+    <table tableName="terminal_module" domainObjectName="TerminalModule"
+
+           enableCountByExample="false" enableUpdateByExample="false"
+
+           enableDeleteByExample="false" enableSelectByExample="false"
+
+           selectByExampleQueryId="false" delimitAllColumns="true">
+
+      <generatedKey column="id" sqlStatement="MySql" identity="true"/>
+
+    </table>
+
+
+
+    <table tableName="terminal_page" domainObjectName="TerminalPage"
+
+           enableCountByExample="false" enableUpdateByExample="false"
+
+           enableDeleteByExample="false" enableSelectByExample="false"
+
+           selectByExampleQueryId="false" delimitAllColumns="true">
+
+      <generatedKey column="id" sqlStatement="MySql" identity="true"/>
+
+    </table>
+
+
+
+    <table tableName="user" domainObjectName="User"
+
+           enableCountByExample="false" enableUpdateByExample="false"
+
+           enableDeleteByExample="false" enableSelectByExample="false"
+
+           selectByExampleQueryId="false" delimitAllColumns="true">
+
+      <generatedKey column="id" sqlStatement="MySql" identity="true"/>
+
+    </table>
+
+
+
+    <table tableName="user_device" domainObjectName="UserDevice"
+
+           enableCountByExample="false" enableUpdateByExample="false"
+
+           enableDeleteByExample="false" enableSelectByExample="false"
+
+           selectByExampleQueryId="false" delimitAllColumns="true">
+
+      <generatedKey column="id" sqlStatement="MySql" identity="true"/>
+
+    </table>
+
+     
+
+     <table tableName="test_plan" domainObjectName="TestPlan"
+
+           enableCountByExample="false" enableUpdateByExample="false"
+
+           enableDeleteByExample="false" enableSelectByExample="false"
+
+           selectByExampleQueryId="false" delimitAllColumns="true">
+
+      <generatedKey column="id" sqlStatement="MySql" identity="true"/>
+
+    </table>
+
+    
+
+    <table tableName="test_plan_terminal_bury" domainObjectName="TestPlanTerminalBury"
+
+           enableCountByExample="false" enableUpdateByExample="false"
+
+           enableDeleteByExample="false" enableSelectByExample="false"
+
+           selectByExampleQueryId="false" delimitAllColumns="true">
+
+      <generatedKey column="id" sqlStatement="MySql" identity="true"/>
+
+    </table>
+
+    
+
+    <table tableName="test_plan_validate_result" domainObjectName="TestPlanValidateResult"
+
+           enableCountByExample="false" enableUpdateByExample="false"
+
+           enableDeleteByExample="false" enableSelectByExample="false"
+
+           selectByExampleQueryId="false" delimitAllColumns="true">
+
+      <generatedKey column="id" sqlStatement="MySql" identity="true"/>
+
+    </table> -->
+
+    <!--  <table tableName="test_plan_task_ref" domainObjectName="TestPlanTaskRef"
+
+           enableCountByExample="false" enableUpdateByExample="false"
+
+           enableDeleteByExample="false" enableSelectByExample="false"
+
+           selectByExampleQueryId="false" delimitAllColumns="true">
+
+      <generatedKey column="id" sqlStatement="MySql" identity="true"/>
+
+    </table> -->
+
+
+
+  </context>
+
+</generatorConfiguration>

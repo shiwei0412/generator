@@ -1,5 +1,5 @@
 /**
- *    Copyright 2006-2019 the original author or authors.
+ *    Copyright 2006-2020 the original author or authors.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -85,8 +85,31 @@ public class IntrospectedColumn {
      * True if there is a column override that defines this column as GENERATED ALWAYS.
      */
     protected boolean isGeneratedAlways;
+    
+    
+    //TODO shiwei03 是否是维度
+    private boolean isDim;
+    
+    //TODO shiwei03 是否是主键
+    private boolean isPrimaryKey;
+    
+    public boolean isDim() {
+		return isDim;
+	}
 
-    /**
+	public void setDim(boolean isDim) {
+		this.isDim = isDim;
+	}
+
+	public boolean isPrimaryKey() {
+		return isPrimaryKey;
+	}
+
+	public void setPrimaryKey(boolean isPrimaryKey) {
+		this.isPrimaryKey = isPrimaryKey;
+	}
+
+	/**
      * Constructs a Column definition. This object holds all the information
      * about a column that is required to generate Java objects and SQL maps;
      */

@@ -1,5 +1,5 @@
 /**
- *    Copyright 2006-2019 the original author or authors.
+ *    Copyright 2006-2020 the original author or authors.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -32,6 +32,7 @@ import org.mybatis.generator.codegen.AbstractJavaGenerator;
 import org.mybatis.generator.codegen.AbstractKotlinGenerator;
 import org.mybatis.generator.codegen.AbstractXmlGenerator;
 import org.mybatis.generator.codegen.mybatis3.javamapper.AnnotatedClientGenerator;
+import org.mybatis.generator.codegen.mybatis3.javamapper.DqsClientGenerator;
 import org.mybatis.generator.codegen.mybatis3.javamapper.JavaMapperGenerator;
 import org.mybatis.generator.codegen.mybatis3.javamapper.MixedClientGenerator;
 import org.mybatis.generator.codegen.mybatis3.model.BaseRecordGenerator;
@@ -66,6 +67,7 @@ public class IntrospectedTableMyBatis3Impl extends IntrospectedTable {
     	//添加java模型生成器，对应javaModelGenerator配置，包括ExampleGenerator、PrimaryKeyGenerator、BaseRecordGenerator、RecordWithBLOBsGenerator
         calculateJavaModelGenerators(warnings, progressCallback);
         //添加java client生成器，对应javaClientGenerator配置
+        //TODO shiwei dqs也可以弄一个DqsClientGenerator，然后里面再添加一下调用dqs的mysql模型的method、kylin的dqs模型的method
         AbstractJavaClientGenerator javaClientGenerator =
                 calculateClientGenerators(warnings, progressCallback);
         //添加mapper生成器，对应sqlMapGenerator配置
@@ -75,6 +77,14 @@ public class IntrospectedTableMyBatis3Impl extends IntrospectedTable {
     protected void calculateXmlMapperGenerator(AbstractJavaClientGenerator javaClientGenerator, 
             List<String> warnings,
             ProgressCallback progressCallback) {
+    	//TODO shiwei 也要特殊处理，dqs模型不需要xmlMapperGenerator
+        if(tableConfiguration != null) {
+        	if(tableConfiguration.isDqsModel()) {
+        		xmlMapperGenerator = null;
+        		return;
+        	}
+        }
+    	
         if (javaClientGenerator == null) {
             if (context.getSqlMapGeneratorConfiguration() != null) {
                 xmlMapperGenerator = new XMLMapperGenerator();
@@ -108,11 +118,24 @@ public class IntrospectedTableMyBatis3Impl extends IntrospectedTable {
         if (context.getJavaClientGeneratorConfiguration() == null) {
             return null;
         }
+        //TODO shiwei 如果该模型为dqs模型，isDqsModel存在且为true
+        //第一次new MyBatisGenerator()的时候，此时tableConfiguration为空，此时不做如下判断。
+        if(tableConfiguration != null) {
+        	if(tableConfiguration.isDqsModel()) {
+        		//如果该模型使用刑天框架，useXingtianExecutor存在且为true
+        		if(tableConfiguration.isUseXingtianExecutor()) {
+        			return new DqsClientGenerator(getClientProject());
+        		}else {
+        			return null;
+        		}
+        	}
+        }
         
         String type = context.getJavaClientGeneratorConfiguration()
                 .getConfigurationType();
 
         AbstractJavaClientGenerator javaGenerator;
+        //TODO shiwei 增加一个dqsMAPPER处理dqs的请求，然后初始化DqsMapperGenerator
         if ("XMLMAPPER".equalsIgnoreCase(type)) { //$NON-NLS-1$
             javaGenerator = new JavaMapperGenerator(getClientProject());
         } else if ("MIXEDMAPPER".equalsIgnoreCase(type)) { //$NON-NLS-1$

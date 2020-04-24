@@ -16,20 +16,6 @@
        limitations under the License.
 
 -->
-<!--
-  This DTD defines the structure of the MyBatis generator configuration file.
-  Configuration files should declare the DOCTYPE as follows:
-  
-  <!DOCTYPE generatorConfiguration PUBLIC
-    "-//mybatis.org//DTD MyBatis Generator Configuration 1.0//EN"
-    "http://mybatis.org/dtd/mybatis-generator-config_1_0.dtd">
-  
-  Please see the documentation included with MyBatis generator for details on each option
-  in the DTD.  You may also view documentation on-line here:
-  
-  http://www.mybatis.org/generator/
-  
--->
 
 <!--
   The generatorConfiguration element is the root element for configurations.
@@ -50,7 +36,7 @@
   The context element is used to describe a context for generating files, and the source
   tables.
 -->
-<!ELEMENT context (property*, plugin*, commentGenerator?, (connectionFactory | jdbcConnection )?, cangjieConnection?, javaTypeResolver?,
+<!ELEMENT context (property*, plugin*, commentGenerator?, (connectionFactory | jdbcConnection), javaTypeResolver?,
                          javaModelGenerator, sqlMapGenerator?, javaClientGenerator?, table+)>
 <!ATTLIST context id ID #REQUIRED
   defaultModelType CDATA #IMPLIED
@@ -76,13 +62,6 @@
   connectionURL CDATA #REQUIRED
   userId CDATA #IMPLIED
   password CDATA #IMPLIED>
-
-<!--
-  连接仓颉的地址配置
--->
-<!ELEMENT cangjieConnection (property*)>
-<!ATTLIST cangjieConnection 
-  requestURL CDATA #REQUIRED>
 
 <!--
   The classPathEntry element is used to add the JDBC driver to the run-time classpath.

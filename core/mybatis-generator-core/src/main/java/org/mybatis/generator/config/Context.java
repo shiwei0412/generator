@@ -1,5 +1,5 @@
 /**
- *    Copyright 2006-2019 the original author or authors.
+ *    Copyright 2006-2020 the original author or authors.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.http.client.HttpClient;
 import org.mybatis.generator.api.CommentGenerator;
 import org.mybatis.generator.api.ConnectionFactory;
 import org.mybatis.generator.api.GeneratedJavaFile;
@@ -42,6 +43,7 @@ import org.mybatis.generator.internal.JDBCConnectionFactory;
 import org.mybatis.generator.internal.ObjectFactory;
 import org.mybatis.generator.internal.PluginAggregator;
 import org.mybatis.generator.internal.db.DatabaseIntrospector;
+import org.mybatis.generator.internal.util.HttpHelper;
 
 /**
  * 对应context配置文件
@@ -53,6 +55,8 @@ public class Context extends PropertyHolder {
     private String id;
 
     private JDBCConnectionConfiguration jdbcConnectionConfiguration;
+    
+    private CangjieConnectionConfiguration cangjieConnectionConfiguration;
 
     private ConnectionFactoryConfiguration connectionFactoryConfiguration;
 
@@ -114,6 +118,10 @@ public class Context extends PropertyHolder {
     public JDBCConnectionConfiguration getJdbcConnectionConfiguration() {
         return jdbcConnectionConfiguration;
     }
+    
+    public CangjieConnectionConfiguration getCangjieConnectionConfiguration() {
+		return cangjieConnectionConfiguration;
+	}
 
     public JavaClientGeneratorConfiguration getJavaClientGeneratorConfiguration() {
         return javaClientGeneratorConfiguration;
@@ -147,17 +155,23 @@ public class Context extends PropertyHolder {
         if (!stringHasValue(id)) {
             errors.add(getString("ValidationError.16")); //$NON-NLS-1$
         }
-
-        if (jdbcConnectionConfiguration == null && connectionFactoryConfiguration == null) {
+        //TODO shiwei 这里是配置文件校验的地方，三个存在1个就行了。
+        if (jdbcConnectionConfiguration == null && connectionFactoryConfiguration == null && cangjieConnectionConfiguration == null) {
             // must specify one
             errors.add(getString("ValidationError.10", id)); //$NON-NLS-1$
-        } else if (jdbcConnectionConfiguration != null && connectionFactoryConfiguration != null) {
+        }
+        if (jdbcConnectionConfiguration != null && connectionFactoryConfiguration != null) {
             // must not specify both
             errors.add(getString("ValidationError.10", id)); //$NON-NLS-1$
-        } else if (jdbcConnectionConfiguration != null) {
+        } 
+        if (jdbcConnectionConfiguration != null) {
             jdbcConnectionConfiguration.validate(errors);
-        } else {
+        } else if(connectionFactoryConfiguration != null){
             connectionFactoryConfiguration.validate(errors);
+        }
+        
+        if(cangjieConnectionConfiguration != null) {
+        	cangjieConnectionConfiguration.validate(errors);
         }
 
         if (javaModelGeneratorConfiguration == null) {
@@ -228,7 +242,11 @@ public class Context extends PropertyHolder {
         this.jdbcConnectionConfiguration = jdbcConnectionConfiguration;
     }
 
-    public void setSqlMapGeneratorConfiguration(
+	public void setCangjieConnectionConfiguration(CangjieConnectionConfiguration cangjieConnectionConfiguration) {
+		this.cangjieConnectionConfiguration = cangjieConnectionConfiguration;
+	}
+
+	public void setSqlMapGeneratorConfiguration(
             SqlMapGeneratorConfiguration sqlMapGeneratorConfiguration) {
         this.sqlMapGeneratorConfiguration = sqlMapGeneratorConfiguration;
     }
@@ -388,13 +406,21 @@ public class Context extends PropertyHolder {
                 .createJavaTypeResolver(this, warnings);
 
         Connection connection = null;
-
+        HttpHelper httpHelper = null; 
         try {
             callback.startTask(getString("Progress.0")); //$NON-NLS-1$
-            connection = getConnection();
-
-            DatabaseIntrospector databaseIntrospector = new DatabaseIntrospector(
-                    this, connection.getMetaData(), javaTypeResolver, warnings);
+            if(cangjieConnectionConfiguration != null) {
+            	httpHelper = new HttpHelper();
+            }
+            DatabaseIntrospector databaseIntrospector = null;
+            if(jdbcConnectionConfiguration != null || connectionFactoryConfiguration != null) {
+            	connection = getConnection();
+            	databaseIntrospector = new DatabaseIntrospector(
+                        this, connection.getMetaData(), httpHelper,javaTypeResolver, warnings);
+            }else {
+            	databaseIntrospector = new DatabaseIntrospector(
+                        this, null, httpHelper,javaTypeResolver, warnings);
+            }
 
             for (TableConfiguration tc : tableConfigurations) {
                 String tableName = composeFullyQualifiedTableName(tc.getCatalog(), tc
@@ -414,8 +440,7 @@ public class Context extends PropertyHolder {
                 callback.startTask(getString("Progress.1", tableName)); //$NON-NLS-1$
                 
                 //TODO shiwei 真正解析数据库表的地方
-                List<IntrospectedTable> tables = databaseIntrospector
-                        .introspectTables(tc);
+                List<IntrospectedTable> tables = databaseIntrospector.introspectTables(tc);
 
                 if (tables != null) {
                     introspectedTables.addAll(tables);
@@ -439,13 +464,18 @@ public class Context extends PropertyHolder {
         JavaTypeResolver javaTypeResolver = ObjectFactory.createJavaTypeResolver(this, warnings);
 
         Connection connection = null;
-
+        HttpHelper httpHelper = null; 
         try {
             callback.startTask(getString("Progress.0")); //$NON-NLS-1$
-            connection = getConnection();
+            
+            if(jdbcConnectionConfiguration != null || connectionFactoryConfiguration != null) {
+            	connection = getConnection();
+            }else {
+            	httpHelper = new HttpHelper();
+            }
 
             DatabaseIntrospector databaseIntrospector = new DatabaseIntrospector(
-                    this, connection.getMetaData(), javaTypeResolver, warnings);
+                    this, connection.getMetaData(), httpHelper, javaTypeResolver, warnings);
 
             for (TableConfiguration tc : tableConfigurations) {
                 String tableName = composeFullyQualifiedTableName(tc.getCatalog(), tc
@@ -465,8 +495,7 @@ public class Context extends PropertyHolder {
                 callback.startTask(getString("Progress.1", tableName)); //$NON-NLS-1$
                 
                 //TODO shiwei 真正解析数据库表的地方
-                List<IntrospectedTable> tables = databaseIntrospector
-                        .introspectTables(tc);
+                List<IntrospectedTable> tables = databaseIntrospector.introspectTables(tc);
 
                 if (tables != null) {
                     introspectedTables.addAll(tables);
@@ -478,9 +507,6 @@ public class Context extends PropertyHolder {
             closeConnection(connection);
         }
     }
-    
-    
-    
     
 
     public int getGenerationSteps() {
@@ -521,6 +547,7 @@ public class Context extends PropertyHolder {
                 //2、初始化生成规则、包和表名，后面生成内容的时候会用到
                 introspectedTable.initialize();
                 //3、添加解析器参数，包括javaModelGenerator、javaClientGenerator、sqlMapGenerator，对应上了配置文件
+                //TODO shiwei 这里是核心关键，构造generator的地方，generator决定了生成的内容是什么样的
                 introspectedTable.calculateGenerators(warnings, callback);
                 
                 //TODO shiwei 生成GeneratedJavaFile、GeneratedXmlFile、GeneratedKotlinFile的地方

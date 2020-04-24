@@ -1,5 +1,5 @@
 /**
- *    Copyright 2006-2019 the original author or authors.
+ *    Copyright 2006-2020 the original author or authors.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -390,6 +390,10 @@ public abstract class IntrospectedTable {
         calculateXmlAttributes();
 
         //对应context的defaultModelType配置
+        //1、conditional：类似hierarchical；
+        //2、flat：所有内容（主键，blob）等全部生成在一个对象中；
+        //3、hierarchical：主键生成一个XXKey对象(key class)，Blob等单独生成一个对象，其他简单属性在一个对象中(record class)
+        //TODO shiwei 这里的rules的设置，决定了是否为primaryKey、blob单独生成一个文件。
         if (tableConfiguration.getModelType() == ModelType.HIERARCHICAL) {
             rules = new HierarchicalModelRules(this);
         } else if (tableConfiguration.getModelType() == ModelType.FLAT) {

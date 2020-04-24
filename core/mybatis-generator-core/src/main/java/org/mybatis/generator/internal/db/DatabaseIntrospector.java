@@ -1,5 +1,5 @@
 /**
- *    Copyright 2006-2019 the original author or authors.
+ *    Copyright 2006-2020 the original author or authors.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -50,15 +50,23 @@ import org.mybatis.generator.config.GeneratedKey;
 import org.mybatis.generator.config.PropertyRegistry;
 import org.mybatis.generator.config.TableConfiguration;
 import org.mybatis.generator.internal.ObjectFactory;
+import org.mybatis.generator.internal.util.CangjieHttpResult;
+import org.mybatis.generator.internal.util.HttpHelper;
+import org.mybatis.generator.internal.util.HttpRequestResult;
 import org.mybatis.generator.internal.util.JavaBeansUtil;
+import org.mybatis.generator.internal.util.ModelDetailForGenVo;
+import org.mybatis.generator.internal.util.ModelFieldDetailForGenVo;
 import org.mybatis.generator.logging.Log;
 import org.mybatis.generator.logging.LogFactory;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.TypeReference;
 
 public class DatabaseIntrospector {
 
-    private DatabaseMetaData databaseMetaData;
+	private DatabaseMetaData databaseMetaData;
+	
+    private HttpHelper httpHelper;
 
     private JavaTypeResolver javaTypeResolver;
 
@@ -69,11 +77,12 @@ public class DatabaseIntrospector {
     private Log logger;
 
     public DatabaseIntrospector(Context context,
-            DatabaseMetaData databaseMetaData,
+            DatabaseMetaData databaseMetaData,HttpHelper httpHelper,
             JavaTypeResolver javaTypeResolver, List<String> warnings) {
         super();
         this.context = context;
         this.databaseMetaData = databaseMetaData;
+        this.httpHelper = httpHelper;
         this.javaTypeResolver = javaTypeResolver;
         this.warnings = warnings;
         logger = LogFactory.getLog(getClass());
@@ -107,6 +116,7 @@ public class DatabaseIntrospector {
             }
 
             for (String columnName : keyColumns.values()) {
+            	//设置主键列，给primaryKeyColumns赋值
                 introspectedTable.addPrimaryKeyColumn(columnName);
             }
         } catch (SQLException e) {
@@ -146,6 +156,7 @@ public class DatabaseIntrospector {
                     string, table.toString()));
         }
 
+        //TODO shiwei03 针对配置文件中generatedKey的校验，看他们是否存在于表中
         GeneratedKey generatedKey = tableConfiguration.getGeneratedKey();
         if (generatedKey != null
                 && !introspectedTable.getColumn(generatedKey.getColumn()).isPresent()) {
@@ -181,8 +192,15 @@ public class DatabaseIntrospector {
 
         // get the raw columns from the DB
     	//解析数据库表的列
-        Map<ActualTableName, List<IntrospectedColumn>> columns = getColumns(tc);
-
+    	Map<ActualTableName, List<IntrospectedColumn>> columns = new HashMap<ActualTableName, List<IntrospectedColumn>>();
+    	if(tc.isDqsModel()) {
+    		//TODO shiwei03 处理主键列 
+    		columns = getColumnsMock(tc);
+    	}else {
+    		columns = getColumns(tc);
+    	}
+    	
+    	//TODO shiwei TableConfiguration增加字段，用于区分dqs的table和其他table，然后解析方式不同
         if (columns.isEmpty()) {
             warnings.add(getString("Warning.19", tc.getCatalog(), //$NON-NLS-1$
                     tc.getSchema(), tc.getTableName()));
@@ -197,9 +215,9 @@ public class DatabaseIntrospector {
         //处理主键列
         calculateIdentityColumns(tc, columns);
 
-        //实例化table，并初始化一些属性
-        List<IntrospectedTable> introspectedTables = calculateIntrospectedTables(
-                tc, columns);
+        //实例化table，并初始化一些属性，例如主键信息.
+        //TODO shiwei03 这里会连接数据库
+        List<IntrospectedTable> introspectedTables = calculateIntrospectedTables(tc, columns);
 
         // now introspectedTables has all the columns from all the
         // tables in the configuration. Do some validation...
@@ -608,7 +626,7 @@ public class DatabaseIntrospector {
                 columns = new ArrayList<>();
                 answer.put(atn, columns);
             }
-            System.out.println("shiwei03 introspectedColumn: " + introspectedColumn.toString());
+            System.out.println("introspectedColumn: " + introspectedColumn.toString());
             columns.add(introspectedColumn);
 
             if (logger.isDebugEnabled()) {
@@ -649,171 +667,90 @@ public class DatabaseIntrospector {
     }
     
     
-  //TODO shiwei mock 解析列的数据
+    private static Map<String, JDBCType> cangjieDataTypeToJdbcTypeMap = new HashMap<String, JDBCType>(); 
+    
+    static {
+    	cangjieDataTypeToJdbcTypeMap.put("string", JDBCType.VARCHAR);
+    	cangjieDataTypeToJdbcTypeMap.put("long", JDBCType.BIGINT);
+    	cangjieDataTypeToJdbcTypeMap.put("double", JDBCType.DOUBLE);
+    	cangjieDataTypeToJdbcTypeMap.put("timestamp", JDBCType.TIMESTAMP);
+    	cangjieDataTypeToJdbcTypeMap.put("date", JDBCType.DATE);
+    	cangjieDataTypeToJdbcTypeMap.put("hll", JDBCType.BIGINT);
+    }
+    
+    //TODO shiwei mock 和仓颉打通，获取到模型所有数据
     private Map<ActualTableName, List<IntrospectedColumn>> getColumnsMock(
             TableConfiguration tc) throws SQLException {
-        String localCatalog;
-        String localSchema;
-        String localTableName;
-
-        /**
-         * 注意：大小写敏感问题。正常情况下，MBG会自动的去识别数据库标识符的大小写敏感度，在一般情况下，MBG会
-            根据设置的schema，catalog或tablename去查询数据表，按照下面的流程：
-            1，如果schema，catalog或tablename中有空格，那么设置的是什么格式，就精确的使用指定的大小写格式去查询；
-            2，否则，如果数据库的标识符使用大写的，那么MBG自动把表名变成大写再查找；
-            3，否则，如果数据库的标识符使用小写的，那么MBG自动把表名变成小写再查找；
-            4，否则，使用指定的大小写格式查询；
-        另外的，如果在创建表的时候，使用的""把数据库对象规定大小写，就算数据库标识符是使用的大写，在这种情况下也会使用给定的大小写来创建表名；
-        这个时候，请设置delimitIdentifiers="true"即可保留大小写格式；
-         */
-        boolean delimitIdentifiers = tc.isDelimitIdentifiers()
-                || stringContainsSpace(tc.getCatalog())
-                || stringContainsSpace(tc.getSchema())
-                || stringContainsSpace(tc.getTableName());
-
-        if (delimitIdentifiers) {
-            localCatalog = tc.getCatalog();
-            localSchema = tc.getSchema();
-            localTableName = tc.getTableName();
-        } else if (databaseMetaData.storesLowerCaseIdentifiers()) {
-            localCatalog = tc.getCatalog() == null ? null : tc.getCatalog()
-                    .toLowerCase();
-            localSchema = tc.getSchema() == null ? null : tc.getSchema()
-                    .toLowerCase();
-            localTableName = tc.getTableName() == null ? null : tc
-                    .getTableName().toLowerCase();
-        } else if (databaseMetaData.storesUpperCaseIdentifiers()) {
-            localCatalog = tc.getCatalog() == null ? null : tc.getCatalog()
-                    .toUpperCase();
-            localSchema = tc.getSchema() == null ? null : tc.getSchema()
-                    .toUpperCase();
-            localTableName = tc.getTableName() == null ? null : tc
-                    .getTableName().toUpperCase();
-        } else {
-            localCatalog = tc.getCatalog();
-            localSchema = tc.getSchema();
-            localTableName = tc.getTableName();
-        }
-
-        // Wildcard 通配符，escaping 转义
-        if (tc.isWildcardEscapingEnabled()) {
-            String escapeString = databaseMetaData.getSearchStringEscape();
-
-            StringBuilder sb = new StringBuilder();
-            StringTokenizer st;
-            if (localSchema != null) {
-                st = new StringTokenizer(localSchema, "_%", true); //$NON-NLS-1$
-                while (st.hasMoreTokens()) {
-                    String token = st.nextToken();
-                    if (token.equals("_") //$NON-NLS-1$
-                            || token.equals("%")) { //$NON-NLS-1$
-                        sb.append(escapeString);
-                    }
-                    sb.append(token);
-                }
-                localSchema = sb.toString();
-            }
-
-            sb.setLength(0);
-            st = new StringTokenizer(localTableName, "_%", true); //$NON-NLS-1$
-            while (st.hasMoreTokens()) {
-                String token = st.nextToken();
-                if (token.equals("_") //$NON-NLS-1$
-                        || token.equals("%")) { //$NON-NLS-1$
-                    sb.append(escapeString);
-                }
-                sb.append(token);
-            }
-            localTableName = sb.toString();
-        }
 
         Map<ActualTableName, List<IntrospectedColumn>> answer = new HashMap<>();
-
-        if (logger.isDebugEnabled()) {
-            String fullTableName = composeFullyQualifiedTableName(localCatalog, localSchema,
-                            localTableName, '.');
-            logger.debug(getString("Tracing.1", fullTableName)); //$NON-NLS-1$
-        }
-
-        ResultSet rs = databaseMetaData.getColumns(localCatalog, localSchema,
-                localTableName, "%"); //$NON-NLS-1$
-
-        boolean supportsIsAutoIncrement = false;
-        boolean supportsIsGeneratedColumn = false;
-        ResultSetMetaData rsmd = rs.getMetaData();
-        int colCount = rsmd.getColumnCount();
-        for (int i = 1; i <= colCount; i++) {
-            if ("IS_AUTOINCREMENT".equals(rsmd.getColumnName(i))) { //$NON-NLS-1$
-                supportsIsAutoIncrement = true;
-            }
-            if ("IS_GENERATEDCOLUMN".equals(rsmd.getColumnName(i))) { //$NON-NLS-1$
-                supportsIsGeneratedColumn = true;
-            }
-        }
-
-        for(int i=0;i<10;i++) {
-        	IntrospectedColumn introspectedColumn = ObjectFactory.createIntrospectedColumn(context);
-        	introspectedColumn.setTableAlias(tc.getAlias());
-        	introspectedColumn.setJdbcType(JDBCType.BIGINT.getVendorTypeNumber()); //$NON-NLS-1$
-        	introspectedColumn.setActualTypeName(rs.getString("TYPE_NAME")); //$NON-NLS-1$
-        	introspectedColumn.setLength(100); //$NON-NLS-1$
-        	introspectedColumn.setActualColumnName(rs.getString("COLUMN_NAME")); //$NON-NLS-1$
-        	introspectedColumn
-        	.setNullable(rs.getInt("NULLABLE") == DatabaseMetaData.columnNullable); //$NON-NLS-1$
-        	introspectedColumn.setScale(rs.getInt("DECIMAL_DIGITS")); //$NON-NLS-1$
-        	introspectedColumn.setRemarks(rs.getString("REMARKS")); //$NON-NLS-1$
-        	introspectedColumn.setDefaultValue(rs.getString("COLUMN_DEF")); //$NON-NLS-1$
-        	
-        	if (supportsIsAutoIncrement) {
-        		introspectedColumn.setAutoIncrement(
-        				"YES".equals(rs.getString("IS_AUTOINCREMENT"))); //$NON-NLS-1$ //$NON-NLS-2$
-        	}
-        	
-        	if (supportsIsGeneratedColumn) {
-        		introspectedColumn.setGeneratedColumn(
-        				"YES".equals(rs.getString("IS_GENERATEDCOLUMN"))); //$NON-NLS-1$ //$NON-NLS-2$
-        	}
-        	
-        	ActualTableName atn = new ActualTableName(
-        			rs.getString("TABLE_CAT"), //$NON-NLS-1$
-        			rs.getString("TABLE_SCHEM"), //$NON-NLS-1$
-        			rs.getString("TABLE_NAME")); //$NON-NLS-1$
-        	
-        	List<IntrospectedColumn> columns = answer.get(atn);
-        	if (columns == null) {
-        		columns = new ArrayList<>();
-        		answer.put(atn, columns);
-        	}
-        	columns.add(introspectedColumn);
-        }
         
-
-
-        closeResultSet(rs);
-
-        if (answer.size() > 1
-                && !stringContainsSQLWildcard(localSchema)
-                && !stringContainsSQLWildcard(localTableName)) {
-            // issue a warning if there is more than one table and
-            // no wildcards were used
-            ActualTableName inputAtn = new ActualTableName(tc.getCatalog(), tc
-                    .getSchema(), tc.getTableName());
-
-            StringBuilder sb = new StringBuilder();
-            boolean comma = false;
-            for (ActualTableName atn : answer.keySet()) {
-                if (comma) {
-                    sb.append(',');
-                } else {
-                    comma = true;
-                }
-                sb.append(atn.toString());
-            }
-
-            warnings.add(getString("Warning.25", //$NON-NLS-1$
-                    inputAtn.toString(), sb.toString()));
-        }
-
+        ModelDetailForGenVo model = new ModelDetailForGenVo();
+        
+        String request = context.getCangjieConnectionConfiguration().getRequestURL();
+        Map<String, Object> params = new HashMap<>();
+        //这个projectId可以去掉
+        params.put("modelName", tc.getTableName());
+		try {
+			HttpRequestResult result = httpHelper.getRequest(request, params);
+			if(result.getHttpStatusCode() != 200 || result.getResponseBody() == null) {
+				System.out.println("get model info from cangjie error,result: "+JSON.toJSONString(result));
+			}
+			System.out.println(result.getResponseBody());
+			
+			TypeReference typeReference = new TypeReference<CangjieHttpResult<ModelDetailForGenVo>>(){};
+			CangjieHttpResult<ModelDetailForGenVo> ajaxResult= JSON.parseObject(result.getResponseBody(), typeReference.getType());
+			model = ajaxResult.getResult();
+		} catch (Exception e) {
+			e.printStackTrace(System.out);
+		}
+        
+        ActualTableName actualTableName = new ActualTableName(
+    			"", //$NON-NLS-1$
+    			"", //$NON-NLS-1$
+    			tc.getTableName()); //$NON-NLS-1$
+    	
+    	List<IntrospectedColumn> columns = answer.get(actualTableName);
+    	if (columns == null) {
+    		columns = new ArrayList<>();
+    		answer.put(actualTableName, columns);
+    	}
+    	
+    	for(ModelFieldDetailForGenVo field: model.getFields()) {
+    		IntrospectedColumn introspectedColumn = ObjectFactory.createIntrospectedColumn(context);
+        	introspectedColumn.setTableAlias(tc.getAlias());
+        	introspectedColumn.setJdbcType(cangjieDataTypeToJdbcTypeMap.get(field.getDataTypeName()).getVendorTypeNumber()); 
+        	introspectedColumn.setActualTypeName(cangjieDataTypeToJdbcTypeMap.get(field.getDataTypeName()).getName()); 
+        	introspectedColumn.setLength(100); 
+        	introspectedColumn.setActualColumnName(field.getModelFieldName()); 
+        	introspectedColumn.setNullable(false);
+        	introspectedColumn.setScale(0); 
+        	introspectedColumn.setRemarks(""); 
+        	introspectedColumn.setDefaultValue(""); 
+        	introspectedColumn.setAutoIncrement(false); 
+        	introspectedColumn.setGeneratedColumn(false);
+        	introspectedColumn.setDim(true);
+        	introspectedColumn.setPrimaryKey(field.getIsPrimaryKey());
+        	columns.add(introspectedColumn);
+    	}
+    	
+    	for(ModelFieldDetailForGenVo field: model.getMetrics()) {
+    		IntrospectedColumn introspectedColumn = ObjectFactory.createIntrospectedColumn(context);
+        	introspectedColumn.setTableAlias(tc.getAlias());
+        	introspectedColumn.setJdbcType(cangjieDataTypeToJdbcTypeMap.get(field.getDataTypeName()).getVendorTypeNumber()); 
+        	introspectedColumn.setActualTypeName(cangjieDataTypeToJdbcTypeMap.get(field.getDataTypeName()).getName()); 
+        	introspectedColumn.setLength(100); 
+        	introspectedColumn.setActualColumnName(field.getModelFieldName()); 
+        	introspectedColumn.setNullable(false);
+        	introspectedColumn.setScale(0); 
+        	introspectedColumn.setRemarks(""); 
+        	introspectedColumn.setDefaultValue(""); 
+        	introspectedColumn.setAutoIncrement(false); 
+        	introspectedColumn.setGeneratedColumn(false);
+        	introspectedColumn.setDim(false);
+        	introspectedColumn.setPrimaryKey(field.getIsPrimaryKey());
+        	columns.add(introspectedColumn);
+    	}
+        
         return answer;
     }
 
@@ -859,10 +796,19 @@ public class DatabaseIntrospector {
                 introspectedTable.addColumn(introspectedColumn);
             }
 
-            //获取表的主键信息
-            calculatePrimaryKey(table, introspectedTable);
-            //获取表的一些其他信息
-            enhanceIntrospectedTable(introspectedTable);
+            //TODO shiwei03 这里原来会连接数据库，从数据库元信息中获取一些表的信息，填充到introspectedTable中，
+            if(tc.isDqsModel()) {
+            	for (IntrospectedColumn introspectedColumn : entry.getValue()) {
+            		if(introspectedColumn.isPrimaryKey()) {
+            			introspectedTable.addPrimaryKeyColumn(introspectedColumn.getActualColumnName());
+            		}
+                }
+            }else {
+            	//连接数据库，从数据库元信息中获取表的主键信息
+            	calculatePrimaryKey(table, introspectedTable);
+            	//连接数据库，从数据库元信息中获取表的一些其他信息
+            	enhanceIntrospectedTable(introspectedTable);
+            }
 
             answer.add(introspectedTable);
         }
@@ -870,7 +816,7 @@ public class DatabaseIntrospector {
         return answer;
     }
 
-    /**
+	/**
      * Calls database metadata to retrieve extra information about the table
      * such as remarks associated with the table and the type.
      *

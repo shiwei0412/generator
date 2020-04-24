@@ -1,5 +1,5 @@
 /**
- *    Copyright 2006-2019 the original author or authors.
+ *    Copyright 2006-2020 the original author or authors.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
+import org.mybatis.generator.config.CangjieConnectionConfiguration;
 import org.mybatis.generator.config.ColumnOverride;
 import org.mybatis.generator.config.ColumnRenamingRule;
 import org.mybatis.generator.config.CommentGeneratorConfiguration;
@@ -181,6 +182,8 @@ public class MyBatisGeneratorConfigurationParser {
                 parsePlugin(context, childNode);
             } else if ("commentGenerator".equals(childNode.getNodeName())) { //$NON-NLS-1$
                 parseCommentGenerator(context, childNode);
+            } else if ("cangjieConnection".equals(childNode.getNodeName())) { //$NON-NLS-1$
+                parseCangjieConnection(context, childNode);
             } else if ("jdbcConnection".equals(childNode.getNodeName())) { //$NON-NLS-1$
                 parseJdbcConnection(context, childNode);
             } else if ("connectionFactory".equals(childNode.getNodeName())) { //$NON-NLS-1$
@@ -670,6 +673,27 @@ public class MyBatisGeneratorConfigurationParser {
             }
         }
     }
+    
+    protected void parseCangjieConnection(Context context, Node node) {
+        CangjieConnectionConfiguration cangjieConnectionConfiguration = new CangjieConnectionConfiguration();
+        context.setCangjieConnectionConfiguration(cangjieConnectionConfiguration);
+
+        Properties attributes = parseAttributes(node);
+        String requestURL = attributes.getProperty("requestURL"); //$NON-NLS-1$
+        cangjieConnectionConfiguration.setRequestURL(requestURL);
+
+        NodeList nodeList = node.getChildNodes();
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node childNode = nodeList.item(i);
+            if (childNode.getNodeType() != Node.ELEMENT_NODE) {
+                continue;
+            }
+            if ("property".equals(childNode.getNodeName())) { //$NON-NLS-1$
+                parseProperty(cangjieConnectionConfiguration, childNode);
+            }
+        }
+    }
+    
 
     protected void parseClassPathEntry(Configuration configuration, Node node) {
         Properties attributes = parseAttributes(node);

@@ -1,5 +1,5 @@
 /**
- *    Copyright 2006-2019 the original author or authors.
+ *    Copyright 2006-2020 the original author or authors.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -88,6 +88,7 @@ public class TableConfiguration extends PropertyHolder {
     private String sqlProviderName;
 
     private List<IgnoredColumnPattern> ignoredColumnPatterns = new ArrayList<>();
+    
 
     public TableConfiguration(Context context) {
         super();
@@ -474,5 +475,17 @@ public class TableConfiguration extends PropertyHolder {
 
     public void setSqlProviderName(String sqlProviderName) {
         this.sqlProviderName = sqlProviderName;
+    }
+    
+    //TODO shiwei 用于dqs模型判断
+    public boolean isDqsModel() {
+    	return this.getProperties().containsKey(PropertyRegistry.TABLE_IS_DQS_MODEL)
+    			&& "true".equals(this.getProperties().getProperty(PropertyRegistry.TABLE_IS_DQS_MODEL));
+    }
+    
+    //TODO shiwei 用于是否使用刑天框架判断
+    public boolean isUseXingtianExecutor() {
+    	return this.getProperties().containsKey(PropertyRegistry.TABLE_USE_XINGTIAN_EXECUTOR)
+    			&& "true".equals(this.getProperties().getProperty(PropertyRegistry.TABLE_USE_XINGTIAN_EXECUTOR));
     }
 }

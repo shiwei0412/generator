@@ -1,5 +1,5 @@
 /**
- *    Copyright 2006-2019 the original author or authors.
+ *    Copyright 2006-2020 the original author or authors.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import static org.mybatis.generator.internal.util.StringUtility.isTrue;
 import java.util.Locale;
 import java.util.Properties;
 
+import org.mybatis.generator.api.CommentGenerator;
 import org.mybatis.generator.api.IntrospectedColumn;
 import org.mybatis.generator.api.IntrospectedTable;
 import org.mybatis.generator.api.dom.java.CompilationUnit;
@@ -31,6 +32,7 @@ import org.mybatis.generator.api.dom.java.Parameter;
 import org.mybatis.generator.config.Context;
 import org.mybatis.generator.config.PropertyRegistry;
 import org.mybatis.generator.config.TableConfiguration;
+import org.mybatis.generator.internal.XingtianCommentGenerator;
 
 public class JavaBeansUtil {
 
@@ -261,8 +263,13 @@ public class JavaBeansUtil {
     
     private static void addGeneratedJavaDoc(Field field, Context context, IntrospectedColumn introspectedColumn,
             IntrospectedTable introspectedTable) {
-        context.getCommentGenerator().addFieldComment(field,
-                introspectedTable, introspectedColumn);
+    	CommentGenerator commentGenerator = null;
+    	if(introspectedTable.getTableConfiguration().isUseXingtianExecutor()) {
+    		commentGenerator = new XingtianCommentGenerator();
+    	}else {
+    		commentGenerator = context.getCommentGenerator();
+    	}
+    	commentGenerator.addFieldComment(field,introspectedTable, introspectedColumn);
     }
 
     private static void addGeneratedAnnotation(Field field, Context context, IntrospectedColumn introspectedColumn,
